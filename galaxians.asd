@@ -5,8 +5,9 @@
     :components
     ((:module "src"
               :components
-              ((:file "main"))))
+              ((:file "package")
+               (:file "main"))))
     :depends-on (#:alexandria
                  #:cl-liballegro
                  #:livesupport)
-    :entry-point "galaxians:main")
+  :entry-point "galaxians:main")

@@ -1,7 +1,10 @@
+(in-package #:galaxians)
+
 (defvar *display*)
 
 (defun main ()
   (al:init)                                    ; al_init();
+  (al:install-keyboard)
   (al:init-primitives-addon)                   ; al_init_primitives_addon()
   (al:set-new-display-flags '(:windowed :resizable :opengl)) ; al_set_new_display_flags(ALLEGRO_WINDOWED | ALLEGRO_RESIZABLE);
   (al:set-new-display-option :vsync 0 :require) ; al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
