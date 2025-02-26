@@ -1,19 +1,7 @@
 (in-package :galaxians)
 
-(define-constant +window-width+ 800)
-(define-constant +window-height+ 600)
-
-(defstruct player-position
-  (x 0 :type integer)
-  (y 0 :type integer))
-
-(defstruct rectangle x1 y1 x2 y2)
-
-(defun player-to-rectangle (player-position)
-  (make-rectangle :x1 (- (player-position-x player-position) 10)
-                  :y1 (- (player-position-y player-position) 10)
-                  :x2 (+ (player-position-x player-position) 10)
-                  :y2 (+ (player-position-y player-position) 10)))
+(define-constant +window-width+ 960)
+(define-constant +window-height+ 720)
 
 (defun initialize ()
   (unless (al:init)
