@@ -3,23 +3,39 @@
 (define-constant +window-width+ 800)
 (define-constant +window-height+ 600)
 
+(defstruct player-position
+  (x 0 :type integer)
+  (y 0 :type integer))
+
+(defstruct game-state
+  (player-position (make-player-position :x 50 :y 50) :type player-position))
+
+(defstruct rectangle x1 y1 x2 y2)
+
+(defun player-to-rectangle (player-position)
+  (make-rectangle :x1 (- (player-position-x player-position) 10)
+                  :y1 (- (player-position-y player-position) 10)
+                  :x2 (+ (player-position-x player-position) 10)
+                  :y2 (+ (player-position-y player-position) 10)))
+
 (defun initialize ()
   (unless (al:init)
     (error "Initializing liballegro failed"))
   (unless (al:init-primitives-addon)
     (error "Initializing primitives addon failed"))
-  (unless (al:init-image-addon)
-    (error "Initializing image addon failed"))
-  (unless (al:init-font-addon)
-    (error "Initializing liballegro font addon failed"))
-  (unless (al:init-ttf-addon)
-    (error "Initializing liballegro TTF addon failed"))
-  (unless (al:install-audio)
-    (error "Intializing audio addon failed"))
-  (unless (al:init-acodec-addon)
-    (error "Initializing audio codec addon failed"))
-  (unless (al:restore-default-mixer)
-    (error "Initializing default audio mixer failed")))
+  ;; (unless (al:init-image-addon)
+    ;; (error "Initializing image addon failed"))
+  ;; (unless (al:init-font-addon)
+  ;;   (error "Initializing liballegro font addon failed"))
+  ;; (unless (al:init-ttf-addon)
+  ;;   (error "Initializing liballegro TTF addon failed"))
+  ;; (unless (al:install-audio)
+  ;;   (error "Intializing audio addon failed"))
+  ;; (unless (al:init-acodec-addon)
+  ;;   (error "Initializing audio codec addon failed"))
+  ;; (unless (al:restore-default-mixer)
+  ;;   (error "Initializing default audio mixer failed"))
+  )
 
 (defun shutdown (display event-queue)
   (al:inhibit-screensaver nil)
@@ -30,16 +46,20 @@
   (al:uninstall-audio)
   (al:shutdown-ttf-addon)
   (al:shutdown-font-addon)
-  (al:shutdown-image-addon))
+  (al:shutdown-image-addon)
+  (al:shutdown-primitives-addon))
 
-(defun render ()
+(defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
-  (al:draw-filled-rectangle
-   100 110 400 450
-   (al:map-rgb 255 255 255))
+  (let ((player-rect (player-to-rectangle (game-state-player-position game-state))))
+    (al:draw-filled-rectangle (rectangle-x1 player-rect)
+                              (rectangle-y1 player-rect)
+                              (rectangle-x2 player-rect)
+                              (rectangle-y2 player-rect)
+                              (al:map-rgb 155 255 255)))
   (al:flip-display))
 
-(defun process-events (keyboard-state)
+(defun process-events (keyboard-state game-state)
   (let ((quit nil))
     (when (al:key-down keyboard-state :escape)
       (setf quit t))
@@ -51,6 +71,10 @@
       (format t "A pressed~%"))
     (when (al:key-down keyboard-state :d)
       (format t "D pressed~%"))
+    (when (al:key-down keyboard-state :p)
+      (format t "P: (~a, ~a)~%"
+              (player-position-x (game-state-player-position game-state))
+              (player-position-y (game-state-player-position game-state))))
     quit))
 
 (cffi:defcallback %main :int ((argc :int) (argv :pointer))
@@ -70,8 +94,9 @@
     ;; ;    (setf *fpsp* (al:get-config-value (al:get-system-config)
                                         ;                                      "game" "show-fps"))
     (initialize)
-    (let ((display (al:create-display +window-width+ +window-height+))
-          (event-queue (al:create-event-queue)))
+    (let* ((display (al:create-display +window-width+ +window-height+))
+           (event-queue (al:create-event-queue))
+           (game-state (make-game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
       (al:inhibit-screensaver t)
@@ -81,9 +106,9 @@
       (al:install-keyboard)
       (al:register-event-source event-queue
                                 (al:get-keyboard-event-source))
-      (al:install-mouse)
-      (al:register-event-source event-queue
-                                (al:get-mouse-event-source))
+      ;; (al:install-mouse)
+      ;; (al:register-event-source event-queue
+      ;;                           (al:get-mouse-event-source))
       (unwind-protect
            (progn
              (livesupport:setup-lisp-repl)
@@ -98,7 +123,8 @@
                      :while (not quit)
                      :do (al:get-keyboard-state state)
                          (setf quit
-                               (process-events state))
+                               (process-events state game-state))
+                         (render game-state)
                          (sleep 0.01))))
         (shutdown display event-queue))))
   0)
