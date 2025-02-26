@@ -1,4 +1,4 @@
-(in-package #:galaxians)
+(in-package :galaxians)
 
 (define-constant +window-width+ 800)
 (define-constant +window-height+ 600)
@@ -6,9 +6,6 @@
 (defstruct player-position
   (x 0 :type integer)
   (y 0 :type integer))
-
-(defstruct game-state
-  (player-position (make-player-position :x 50 :y 50) :type player-position))
 
 (defstruct rectangle x1 y1 x2 y2)
 
@@ -64,13 +61,13 @@
     (when (al:key-down keyboard-state :escape)
       (setf quit t))
     (when (al:key-down keyboard-state :w)
-      (format t "W pressed~%"))
+      (move-player* game-state 0 -5))
     (when (al:key-down keyboard-state :s)
-      (format t "S pressed~%"))
+      (move-player* game-state 0 5))
     (when (al:key-down keyboard-state :a)
-      (format t "A pressed~%"))
+      (move-player* game-state -5 0))
     (when (al:key-down keyboard-state :d)
-      (format t "D pressed~%"))
+      (move-player* game-state 5 0))
     (when (al:key-down keyboard-state :p)
       (format t "P: (~a, ~a)~%"
               (player-position-x (game-state-player-position game-state))

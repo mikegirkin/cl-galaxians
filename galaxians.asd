@@ -6,6 +6,7 @@
     ((:module "src"
               :components
               ((:file "package")
+               (:file "game-state")
                (:file "main"))))
     :depends-on (#:alexandria
                  #:cl-liballegro
