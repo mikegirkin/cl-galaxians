@@ -1,7 +1,7 @@
 (in-package :galaxians)
 
-(define-constant +window-width+ 960)
-(define-constant +window-height+ 720)
+(define-constant +window-width+ (* 320 +scale+))
+(define-constant +window-height+ (* 200 +scale+))
 
 (defun initialize ()
   (unless (al:init)
@@ -9,7 +9,7 @@
   (unless (al:init-primitives-addon)
     (error "Initializing primitives addon failed"))
   ;; (unless (al:init-image-addon)
-    ;; (error "Initializing image addon failed"))
+  ;; (error "Initializing image addon failed"))
   ;; (unless (al:init-font-addon)
   ;;   (error "Initializing liballegro font addon failed"))
   ;; (unless (al:init-ttf-addon)
@@ -36,7 +36,7 @@
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
-  (let ((player-rect (player-to-rectangle (game-state-player-position game-state))))
+  (let ((player-rect (player-to-rectangle (player-position game-state))))
     (al:draw-filled-rectangle (rectangle-x1 player-rect)
                               (rectangle-y1 player-rect)
                               (rectangle-x2 player-rect)
@@ -44,23 +44,8 @@
                               (al:map-rgb 155 255 255)))
   (al:flip-display))
 
-(defun process-events (keyboard-state game-state)
-  (let ((quit nil))
-    (when (al:key-down keyboard-state :escape)
-      (setf quit t))
-    (when (al:key-down keyboard-state :w)
-      (move-player* game-state 0 -5))
-    (when (al:key-down keyboard-state :s)
-      (move-player* game-state 0 5))
-    (when (al:key-down keyboard-state :a)
-      (move-player* game-state -5 0))
-    (when (al:key-down keyboard-state :d)
-      (move-player* game-state 5 0))
-    (when (al:key-down keyboard-state :p)
-      (format t "P: (~a, ~a)~%"
-              (player-position-x (game-state-player-position game-state))
-              (player-position-y (game-state-player-position game-state))))
-    quit))
+(defun update (game-state)
+  (move-player* game-state))
 
 (cffi:defcallback %main :int ((argc :int) (argv :pointer))
   (declare (ignore argc argv))
@@ -81,7 +66,7 @@
     (initialize)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (game-state (make-game-state)))
+           (game-state (make-instance 'game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
       (al:inhibit-screensaver t)
@@ -105,14 +90,44 @@
                      :with dt :of-type double-float := 0d0
                      :with restart := nil
                      :with quit := nil
-                     :while (not quit)
-                     :do (al:get-keyboard-state state)
-                         (setf quit
-                               (process-events state game-state))
+                     :while (not (game-state-quit game-state))
+                     :do (process-event-queue event-queue game-state)
+                         (update game-state)
                          (render game-state)
                          (sleep 0.01))))
         (shutdown display event-queue))))
   0)
+
+(defun handle-key-down-event (keycode game-state)
+  (case keycode
+    (:escape (setf (game-state-quit game-state) t))
+    (:p (pprint game-state))
+    (:w (setf (move-up (requested-player-actions game-state)) t))
+    (:s (setf (move-down (requested-player-actions game-state)) t))
+    (:a (setf (move-left (requested-player-actions game-state)) t))
+    (:d (setf (move-right (requested-player-actions game-state)) t))))
+
+(defun handle-key-up-event (keycode game-state)
+  (case keycode
+    (:w (setf (move-up (requested-player-actions game-state)) nil))
+    (:s (setf (move-down (requested-player-actions game-state)) nil))
+    (:a (setf (move-left (requested-player-actions game-state)) nil))
+    (:d (setf (move-right (requested-player-actions game-state)) nil))))
+
+(defun process-event-queue (event-queue game-state)
+  (cffi:with-foreign-object (event '(:union al:event))
+    (loop :while (al:get-next-event event-queue event)
+          :do (let ((event-type (cffi:foreign-slot-value event '(:union al:event) 'al::type)))
+                (case event-type
+                  (:key-down (handle-key-down-event (cffi:foreign-slot-value event
+                                                                             '(:struct al:keyboard-event)
+                                                                             'al::keycode)
+                                                    game-state))
+                  (:key-up (handle-key-up-event (cffi:foreign-slot-value event
+                                                                           '(:struct al:keyboard-event)
+                                                                           'al::keycode)
+                                                game-state))
+                  (:display-close (setf (game-state-quit game-state) t)))))))
 
 (defun main ()
   (float-features:with-float-traps-masked

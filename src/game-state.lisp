@@ -1,6 +1,7 @@
 (in-package :galaxians)
 
-(defconstant +scale+ 3)
+(defconstant +scale+ 4)
+(defconstant +player-movement-speed+ 3)
 
 (defmethod world-to-gfx ((single-coord integer))
   (* single-coord +scale+))
@@ -24,12 +25,32 @@
                    :x2 (+ (player-position-x player-position) 5)
                    :y2 (+ (player-position-y player-position) 5))))
 
-(defstruct game-state
-  (player-position (make-player-position :x 160 :y 120) :type player-position))
+(defclass requested-player-actions ()
+  ((move-up :initform nil :accessor move-up)
+   (move-down :initform nil :accessor move-down)
+   (move-left :initform nil :accessor move-left)
+   (move-right :initform nil :accessor move-right)
+   (fire :initform nil :accessor fire)))
 
-(defmethod move-player* ((game-state game-state)
-                         (dx integer)
-                         (dy integer))
-  (incf (player-position-x (game-state-player-position game-state)) dx)
-  (incf (player-position-y (game-state-player-position game-state)) dy))
+(defclass game-state ()
+  ((player-position :initform (make-player-position :x 160 :y 120)
+                    :type player-position
+                    :accessor player-position)
+   (reload-time-left :initform 0
+                     :type integer)
+   (requested-player-actions :initform (make-instance 'requested-player-actions)
+                             :type requested-player-actions
+                             :accessor requested-player-actions)
+   (quit :initform nil
+         :type boolean
+         :accessor game-state-quit)))
 
+(defmethod move-player* ((game-state game-state))
+  (let* ((up (if (move-up (requested-player-actions game-state)) +player-movement-speed+ 0))
+         (down (if (move-down (requested-player-actions game-state)) +player-movement-speed+ 0))
+         (left (if (move-left (requested-player-actions game-state)) +player-movement-speed+ 0))
+         (right (if (move-right (requested-player-actions game-state)) +player-movement-speed+ 0))
+         (dy (- down up))
+         (dx (- right left)))
+    (incf (player-position-x (player-position game-state)) dx)
+    (incf (player-position-y (player-position game-state)) dy)))
