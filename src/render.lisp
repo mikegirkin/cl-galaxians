@@ -1,11 +1,17 @@
 (in-package :galaxians)
 
-(defun player-to-rectangle (player-position)
-  (world-to-gfx
-   (make-rectangle :x1 (- (player-position-x player-position) 5)
-                   :y1 (- (player-position-y player-position) 5)
-                   :x2 (+ (player-position-x player-position) 5)
-                   :y2 (+ (player-position-y player-position) 5))))
+(defun render-player (player-position)
+  (let ((player-rect (world-to-gfx
+                      (make-rectangle :x1 (- (player-position-x player-position) 5)
+                                      :y1 (- (player-position-y player-position) 5)
+                                      :x2 (+ (player-position-x player-position) 5)
+                                      :y2 (+ (player-position-y player-position) 5)))))
+    (al:draw-filled-rectangle (rectangle-x1 player-rect)
+                              (rectangle-y1 player-rect)
+                              (rectangle-x2 player-rect)
+                              (rectangle-y2 player-rect)
+                              (al:map-rgb 155 255 255))))
+
 
 (defmethod world-to-gfx ((single-coord integer))
   (* single-coord +scale+))
@@ -18,11 +24,6 @@
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
-  (let ((player-rect (player-to-rectangle (player-position game-state))))
-    (al:draw-filled-rectangle (rectangle-x1 player-rect)
-                              (rectangle-y1 player-rect)
-                              (rectangle-x2 player-rect)
-                              (rectangle-y2 player-rect)
-                              (al:map-rgb 155 255 255)))
+  (render-player (player-position game-state))
   (al:flip-display))
 
