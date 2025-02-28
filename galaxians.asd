@@ -7,6 +7,7 @@
               :components
               ((:file "package")
                (:file "game-state")
+               (:file "render")
                (:file "main"))))
     :depends-on (#:alexandria
                  #:cl-liballegro

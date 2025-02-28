@@ -34,19 +34,6 @@
   (al:shutdown-image-addon)
   (al:shutdown-primitives-addon))
 
-(defun render (game-state)
-  (al:clear-to-color (al:map-rgb 0 0 0))
-  (let ((player-rect (player-to-rectangle (player-position game-state))))
-    (al:draw-filled-rectangle (rectangle-x1 player-rect)
-                              (rectangle-y1 player-rect)
-                              (rectangle-x2 player-rect)
-                              (rectangle-y2 player-rect)
-                              (al:map-rgb 155 255 255)))
-  (al:flip-display))
-
-(defun update (game-state)
-  (move-player* game-state))
-
 (cffi:defcallback %main :int ((argc :int) (argv :pointer))
   (declare (ignore argc argv))
   (handler-bind
@@ -92,7 +79,7 @@
                      :with quit := nil
                      :while (not (game-state-quit game-state))
                      :do (process-event-queue event-queue game-state)
-                         (update game-state)
+                         (update* game-state)
                          (render game-state)
                          (sleep 0.01))))
         (shutdown display event-queue))))
