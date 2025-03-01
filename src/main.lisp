@@ -1,7 +1,7 @@
 (in-package :galaxians)
 
-(define-constant +window-width+ (* 320 +scale+))
-(define-constant +window-height+ (* 200 +scale+))
+(defparameter +window-width+ (* 320 +scale+))
+(defparameter +window-height+ (* 200 +scale+))
 
 (defun initialize ()
   (unless (al:init)
@@ -53,8 +53,7 @@
     (initialize)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (game-state (make-instance 'game-state))
-           (_ (load-sprites! game-state)))
+           (game-state (make-instance 'game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
       (al:inhibit-screensaver t)
@@ -67,6 +66,8 @@
       ;; (al:install-mouse)
       ;; (al:register-event-source event-queue
       ;;                           (al:get-mouse-event-source))
+      (load-sprites! game-state)
+      (initialize-enemies! game-state)
       (unwind-protect
            (progn
              (livesupport:setup-lisp-repl)

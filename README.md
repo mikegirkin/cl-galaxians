@@ -18,4 +18,4 @@ Then
 
 PLayer ship: https://foozlecc.itch.io/void-main-ship
 
-Enemy ships: https://lowich.itch.io/free-spaceship-sprites
+Enemy ships: https://opengameart.org/content/spaceships-32x32
