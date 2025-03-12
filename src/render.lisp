@@ -21,13 +21,13 @@
   (setf (sprites-guardian-ship (sprites game-state)) (load-bitmap +enemy-ship-guardian+)))
 
 (defun render-player (game-state)
-  (let* ((player-position (player-position game-state))
+  (let* ((player-state (player-state game-state))
          (half-player-size (/ +player-width+ 2)))
     (al:draw-scaled-bitmap (sprites-main-ship (sprites game-state))
                            8 8
                            32 32
-                           (world-to-gfx (- (player-position-x player-position) half-player-size))
-                           (world-to-gfx (- (player-position-y player-position) half-player-size))
+                           (world-to-gfx (- (x player-state) half-player-size))
+                           (world-to-gfx (- (y player-state) half-player-size))
                            (world-to-gfx +player-width+)
                            (world-to-gfx +player-width+)
                            nil)))
@@ -45,8 +45,8 @@
         :do (al:draw-scaled-bitmap sprite
                                    0 0
                                    32 32
-                                   (world-to-gfx (rectangle-x1 (ship-position enemy-ship)))
-                                   (world-to-gfx (rectangle-y1 (ship-position enemy-ship)))
+                                   (world-to-gfx (x1 (ship-position enemy-ship)))
+                                   (world-to-gfx (y1 (ship-position enemy-ship)))
                                    (world-to-gfx (rectangle-width (ship-position enemy-ship)))
                                    (world-to-gfx (rectangle-height (ship-position enemy-ship)))
                                    nil
@@ -56,10 +56,10 @@
   (* single-coord +scale+))
 
 (defmethod world-to-gfx ((rect rectangle))
-  (make-rectangle :x1 (world-to-gfx (rectangle-x1 rect))
-                  :y1 (world-to-gfx (rectangle-y1 rect))
-                  :x2 (world-to-gfx (rectangle-x2 rect))
-                  :y2 (world-to-gfx (rectangle-y2 rect))))
+  (make-instance 'rectangle :x1 (world-to-gfx (x1 rect))
+                  :y1 (world-to-gfx (y1 rect))
+                  :x2 (world-to-gfx (x2 rect))
+                  :y2 (world-to-gfx (y2 rect))))
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))

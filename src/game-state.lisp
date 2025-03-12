@@ -6,25 +6,43 @@
 (defparameter +max-right-pos+ 200)
 (defparameter +player-width+ 16)
 
-(defstruct player-position
-  (x 0 :type integer)
-  (y 0 :type integer))
+(defclass player-state ()
+  ((x :initform 0
+      :initarg :x
+      :type integer
+      :accessor x)
+   (y :initform 0
+      :initarg :y
+      :type integer
+      :accessor y)))
 
-(defstruct rectangle
-  (x1 0 :type integer)
-  (y1 0 :type integer)
-  (x2 0 :type integer)
-  (y2 0 :type integer))
+(defclass rectangle ()
+  ((x1 :initform 0
+       :initarg :x1
+       :type integer
+       :accessor x1)
+   (y1 :initform 0
+       :initarg :y1
+       :type integer
+       :accessor y1)
+   (x2 :initform 0
+       :initarg :x2
+       :type integer
+       :accessor x2)
+   (y2 :initform 0
+       :initarg :y2
+       :type integer
+       :accessor y2)))
 
 (defmethod rectangle-width ((rectangle rectangle))
   (abs (-
-        (rectangle-x1 rectangle)
-        (rectangle-x2 rectangle))))
+        (x1 rectangle)
+        (x2 rectangle))))
 
 (defmethod rectangle-height ((rectangle rectangle))
   (abs (-
-        (rectangle-y1 rectangle)
-        (rectangle-y2 rectangle))))
+        (y1 rectangle)
+        (y2 rectangle))))
 
 (defstruct sprites
   main-ship
@@ -50,9 +68,9 @@
               :accessor ship-type)))
 
 (defclass game-state ()
-  ((player-position :initform (make-player-position :x 100 :y 180)
-                    :type player-position
-                    :accessor player-position)
+  ((player-state :initform (make-instance 'player-state :x 100 :y 150)
+                 :type player-state
+                 :accessor player-state)
    (enemies :initform (vector)
             :type (vector enemy-ship-state)
             :accessor enemies)
@@ -72,33 +90,26 @@
   (min max-value
        (max min-value value)))
 
+(defun mk-initial-ship-state (ship-type row col)
+  (make-instance 'enemy-ship-state
+                 :ship-position (make-instance 'rectangle :x1 (* (+ col 1) 16)
+                                                          :y1 (* row 16)
+                                                          :x2 (+ (* (+ col 1) 16) 15)
+                                                          :y2 (+ (* row 16) 15))
+                 :ship-type ship-type))
+
 (defun mk-initial-enemy-state ()
   (append
-   (loop :for i :from 0 :to 9
+   (loop :for col :from 0 :to 9
          :append (loop
                    :for row :from 4 :downto 2
-                   :collect (make-instance 'enemy-ship-state
-                                           :ship-position (make-rectangle :x1 (* (+ i 1) 16)
-                                                                          :y1 (* row 16)
-                                                                          :x2 (+ (* (+ i 1) 16) 15)
-                                                                          :y2 (+ (* row 16) 15))
-                                           :ship-type :drone)))
-   (loop :for i :from 1 :to 8
+                   :collect (mk-initial-ship-state row col :drone)))
+   (loop :for col :from 1 :to 8
          :with row := 1
-         :collect (make-instance 'enemy-ship-state
-                                 :ship-position (make-rectangle :x1 (* (+ i 1) 16)
-                                                                :y1 (* row 16)
-                                                                :x2 (+ (* (+ i 1) 16) 15)
-                                                                :y2 (+ (* row 16) 15))
-                                 :ship-type :sentry))
-   (loop :for i :from 2 :to 7
+         :collect (mk-initial-ship-state row col :sentry))
+   (loop :for col :from 2 :to 7
          :with row := 0
-         :collect (make-instance 'enemy-ship-state
-                                 :ship-position (make-rectangle :x1 (* (+ i 1) 16)
-                                                                :y1 (* row 16)
-                                                                :x2 (+ (* (+ i 1) 16) 13)
-                                                                :y2 (+ (* row 16) 13))
-                                 :ship-type :guardian))))
+         :collect (mk-initial-ship-state row col :guardian))))
 
 (defmethod initialize-enemies! ((game-state game-state))
   (let ((enemies (mk-initial-enemy-state)))
@@ -109,8 +120,8 @@
          (right (if (move-right (requested-player-actions game-state)) +player-movement-speed+ 0))
          (dx (- right left))
          (new-x (limit-by +min-left-pos+ +max-right-pos+
-                          (+ (player-position-x (player-position game-state)) dx))))
-    (setf (player-position-x (player-position game-state)) new-x)))
+                          (+ (x (player-state game-state)) dx))))
+    (setf (x (player-state game-state)) new-x)))
 
 (defmethod update* ((game-state game-state))
   (move-player* game-state))
