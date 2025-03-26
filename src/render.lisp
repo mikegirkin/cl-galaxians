@@ -56,10 +56,10 @@
   (* single-coord +scale+))
 
 (defmethod world-to-gfx ((rect rectangle))
-  (make-instance 'rectangle :x1 (world-to-gfx (x1 rect))
-                  :y1 (world-to-gfx (y1 rect))
-                  :x2 (world-to-gfx (x2 rect))
-                  :y2 (world-to-gfx (y2 rect))))
+  (make-rectangle-by-coords (world-to-gfx (x1 rect))
+                            (world-to-gfx (y1 rect))
+                            (world-to-gfx (x2 rect))
+                            (world-to-gfx (y2 rect))))
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
