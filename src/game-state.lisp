@@ -4,6 +4,8 @@
 (defparameter +player-movement-speed+ 3)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
+(defparameter +player-projectile-speed+ 10)
+(defparameter +player-reload-time-ms+ 250)
 
 (defclass player-state ()
   ((x :initform 0f0
@@ -25,8 +27,8 @@
 
 (defmethod get-center ((player-state player-state))
   (make-instance 'point2d
-                 :x (+ (x player-state) (get-width player-state) -1)
-                 :y (+ (y player-state) (get-width player-state) -1)))
+                 :x (+ (x player-state) (/ (get-width player-state) 2.0))
+                 :y (+ (y player-state) (/ (get-width player-state) 2.0))))
 
 (defclass rectangle ()
   ((x1 :initform 0
@@ -50,7 +52,18 @@
                  :y2 y2))
 
 (defun make-rectangle-by-size (x1 y1 width height)
-  (make-rectangle-by-coords x1 y1 (+ x1 width -1) (+ y1 height -1)))
+  (make-rectangle-by-coords x1 y1 (+ x1 width) (+ y1 height)))
+
+(defmethod rectangle= (r1 r2)
+  (and (= (x1 r1) (x1 r2))
+       (= (y1 r1) (y1 r2))
+       (= (x2 r1) (x2 r2))
+       (= (y2 r1) (y2 r2))))
+
+(defmethod print-object ((obj rectangle) out)
+  (with-slots (x1 y1 x2 y2) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "x1: ~A y1: ~A x2: ~A y2: ~A" x1 y1 x2 y2))))
 
 (defmethod rectangle-width ((rectangle rectangle))
   (abs (- (x1 rectangle)
@@ -70,6 +83,19 @@
        :type float
        :accessor dy)))
 
+(defun make-vector2d (dx dy)
+  (make-instance 'vector2d :dx dx :dy dy))
+
+(defmethod print-object ((obj vector2d) out)
+  (with-slots (dx dy) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "dx: ~A dy: ~A" dx dy))))
+
+(defmethod vector2d= (v1 v2)
+  (and (= (dx v1) (dx v2))
+       (= (dy v1) (dy v2))))
+
+
 (defclass point2d ()
   ((x :initform 0f0
       :initarg :x
@@ -79,9 +105,6 @@
       :initarg :y
       :type float
       :accessor point-y)))
-
-(defun make-vector2d (dx dy)
-  (make-instance 'vector2d :dx dx :dy dy))
 
 (defstruct sprites
   main-ship
@@ -120,7 +143,7 @@
 (defun new-player-projectile (player-state movement-vector)
   (let* ((player-center-point (get-center player-state))
          (player-center-x (point-x player-center-point))
-         (player-center-y (point-y player-center-point)))
+         (player-center-y (y player-state)))
     (make-instance 'projectile-state
                    :rect (make-rectangle-by-size player-center-x player-center-y 1 3)
                    :movement-vector movement-vector
@@ -133,11 +156,12 @@
    (enemies :initform (vector)
             :type (vector enemy-ship-state)
             :accessor enemies)
-   (projectiles :initform (vector)
+   (projectiles :initform (make-array 0 :fill-pointer t :adjustable t)
                 :type (vector projectile-state)
                 :accessor projectiles)
    (reload-time-left :initform 0
-                     :type integer)
+                     :type integer
+                     :accessor reload-time-left)
    (requested-player-actions :initform (make-instance 'requested-player-actions)
                              :type requested-player-actions
                              :accessor requested-player-actions)
@@ -147,6 +171,9 @@
    (quit :initform nil
          :type boolean
          :accessor game-state-quit)))
+
+(defun make-initial-game-state ()
+  (make-instance 'game-state))
 
 (defun limit-by (min-value max-value value)
   (min max-value
@@ -189,12 +216,11 @@
 (defmethod player-fire* ((game-state game-state))
   (if (and (fire (requested-player-actions game-state))
            (= (reload-time-left game-state) 0))
-      (let* (new-projectile ))
-      
-      )
-
-
-    )
+      (let* ((projectile-vector (make-vector2d 0 +player-projectile-speed+))
+             (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
+        (vector-push-extend new-projectile (projectiles game-state))
+        (setf (reload-time-left game-state) +player-reload-time-ms+))))
 
 (defmethod update* ((game-state game-state))
+  (player-fire* game-state)
   (move-player* game-state))

@@ -53,7 +53,7 @@
     (initialize)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (game-state (make-instance 'game-state)))
+           (game-state (make-initial-game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
       (al:inhibit-screensaver t)
