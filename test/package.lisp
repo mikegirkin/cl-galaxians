@@ -1,5 +1,8 @@
 (defpackage :galaxians-spec
   (:use :cl
-        :fiveam)
+        :fiveam
+        :binding-arrows)
+  (:import-from :let-plus
+                #:let+)
   (:local-nicknames (:g :galaxians)))
 

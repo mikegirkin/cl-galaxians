@@ -1,7 +1,7 @@
 (in-package :galaxians)
 
-(defparameter +window-width+ (* 320 +scale+))
-(defparameter +window-height+ (* 200 +scale+))
+(defparameter +window-width+ (* +game-screen-width+ +scale+))
+(defparameter +window-height+ (* +game-screen-height+ +scale+))
 
 (defun initialize ()
   (unless (al:init)

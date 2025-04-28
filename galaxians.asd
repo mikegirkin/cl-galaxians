@@ -15,6 +15,8 @@
   :depends-on (:alexandria
                :cl-liballegro
                :livesupport
-               :fiveam)
+               :fiveam
+               :binding-arrows
+               :let-plus)
 
   :entry-point "galaxians:main")
