@@ -2,6 +2,7 @@
 
 (defparameter +scale+ 6)
 (defparameter +player-movement-speed+ 3)
+(defparameter +player-width+ 16)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
 (defparameter +player-projectile-speed+ 10)
@@ -42,140 +43,6 @@
                  :x (+ (x player-state) (/ (get-width player-state) 2.0))
                  :y (+ (y player-state) (/ (get-width player-state) 2.0))))
 
-(defclass point2d ()
-  ((x :initform 0f0
-      :initarg :x
-      :type float
-      :accessor point-x)
-   (y :initform 0f0
-      :initarg :y
-      :type float
-      :accessor point-y)))
-
-(defmethod print-object ((obj point2d) out)
-  (with-slots (x y) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "x:~A y:~A" x y))))
-
-(defun make-point2d (x y)
-  (make-instance 'point2d :x x
-                          :y y))
-
-(defclass vector2d ()
-  ((dx :initform 0f0
-       :initarg :dx
-       :type float
-       :accessor dx)
-   (dy :initform 0f0
-       :initarg :dy
-       :type float
-       :accessor dy)))
-
-(defmethod print-object ((obj vector2d) out)
-  (with-slots (dx dy) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "dx:~A dy:~A" dx dy))))
-
-(defun make-vector2d (dx dy)
-  (make-instance 'vector2d :dx dx :dy dy))
-
-(defmethod vector2d= (v1 v2)
-  (and (= (dx v1) (dx v2))
-       (= (dy v1) (dy v2))))
-
-(defmethod mul-scalar (vector scalar)
-  (make-vector2d (* (dx vector) scalar)
-                 (* (dy vector) scalar)))
-
-(defclass rectangle ()
-  ((x1 :initform 0
-       :initarg :x1
-       :accessor x1)
-   (y1 :initform 0
-       :initarg :y1
-       :accessor y1)
-   (x2 :initform 0
-       :initarg :x2
-       :accessor x2)
-   (y2 :initform 0
-       :initarg :y2
-       :accessor y2)))
-
-(defmethod print-object ((obj rectangle) out)
-  (with-slots (x1 y1 x2 y2) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "x1:~A y1:~A x2:~A y2:~A" x1 y1 x2 y2))))
-
-(defun make-rectangle-by-coords (x1 y1 x2 y2)
-  (make-instance 'rectangle
-                 :x1 x1
-                 :y1 y1
-                 :x2 x2
-                 :y2 y2))
-
-(defun make-rectangle-by-size (x1 y1 width height)
-  (make-rectangle-by-coords x1 y1 (+ x1 width) (+ y1 height)))
-
-(defmethod rectangle= ((r1 rectangle)
-                       (r2 rectangle))
-  (and (= (x1 r1) (x1 r2))
-       (= (y1 r1) (y1 r2))
-       (= (x2 r1) (x2 r2))
-       (= (y2 r1) (y2 r2))))
-
-(defmethod copy ((r rectangle))
-  (make-rectangle-by-coords (x1 r)
-                            (y1 r)
-                            (x2 r)
-                            (y2 r)))
-
-(defmethod rectangle-width ((rectangle rectangle))
-  (abs (- (x1 rectangle)
-          (x2 rectangle))))
-
-(defmethod rectangle-height ((rectangle rectangle))
-  (abs (- (y1 rectangle)
-          (y2 rectangle))))
-
-(defmethod rectangle-topleft ((rectangle rectangle))
-  (make-point2d (min (x1 rectangle) (x2 rectangle))
-                (max (y1 rectangle) (y2 rectangle))))
-
-(defmethod rectangle-bottomright ((rectangle rectangle))
-  (make-point2d (max (x1 rectangle) (x2 rectangle))
-                (min (y1 rectangle) (y2 rectangle))))
-
-(defmethod move-rect! ((rect rectangle)
-                       (vector vector2d))
-  (setf (x1 rect) (+ (x1 rect) (dx vector)))
-  (setf (y1 rect) (+ (y1 rect) (dy vector)))
-  (setf (x2 rect) (+ (x2 rect) (dx vector)))
-  (setf (y2 rect) (+ (y2 rect) (dy vector))))
-
-(defmethod has-common-area? ((boundary-rect rectangle)
-                             (rect-to-check rectangle))
-  (or
-   (within-rectangle? boundary-rect
-                     (make-point2d (x1 rect-to-check) (y1 rect-to-check)))
-   (within-rectangle? boundary-rect
-                     (make-point2d (x1 rect-to-check) (y2 rect-to-check)))
-   (within-rectangle? boundary-rect
-                     (make-point2d (x2 rect-to-check) (y1 rect-to-check)))
-   (within-rectangle? boundary-rect
-                     (make-point2d (x2 rect-to-check) (y2 rect-to-check)))))
-
-(defmethod within-rectangle? ((boundary-rect rectangle)
-                              (point point2d))
-  (let+ (((&accessors (x point-x)
-                      (y point-y)) point)
-         ((&accessors (topleft rectangle-topleft)
-                      (bottomright rectangle-bottomright)) boundary-rect))
-    (and
-     (>= x (point-x topleft))
-     (<= x (point-x bottomright))
-     (>= y (point-y bottomright))
-     (<= y (point-y topleft)))))
-
 (defstruct sprites
   main-ship
   drone-ship
@@ -199,6 +66,11 @@
               :type enemy-type
               :accessor ship-type)))
 
+(defmethod print-object ((obj enemy-ship-state) out)
+  (with-slots (ship-position ship-type) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "position:~A type:~A" ship-position ship-type))))
+
 (defclass projectile-state ()
   ((position-rect :initarg :rect
                   :type rectangle
@@ -209,6 +81,12 @@
    (is-player-owned :initarg :is-player-owned
                     :type boolean
                     :accessor is-player-owned)))
+
+(defun mk-projectile-state (position-rect speed-vector is-player-owned)
+  (make-instance 'projectile-state
+                 :rect position-rect
+                 :speed-vector speed-vector
+                 :is-player-owned t))
 
 (defmethod print-object ((obj projectile-state) out)
   (with-slots (position-rect speed-vector is-player-owned) obj
@@ -223,11 +101,9 @@
 (defun new-player-projectile (player-state speed-vector)
   (let* ((player-center-point (get-center player-state))
          (player-center-x (point-x player-center-point))
-         (player-center-y (y player-state)))
-    (make-instance 'projectile-state
-                   :rect (make-rectangle-by-size player-center-x player-center-y 1 3)
-                   :speed-vector speed-vector
-                   :is-player-owned t)))
+         (player-center-y (y player-state))
+         (projectile-position-rect (make-rectangle-by-size player-center-x player-center-y 1 3)))
+    (mk-projectile-state projectile-position-rect speed-vector t)))
 
 (defclass game-state ()
   ((player-state :initform (make-instance 'player-state :x 100 :y 150)
@@ -298,10 +174,11 @@
                               (seconds-since-last-update double-float))
   (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
                                              :fill-pointer 0
-                                             :adjustable t)))
+                                             :adjustable t))
+         (screen-rect (screen-rect game-state)))
     (loop :for projectile :across (projectiles game-state)
           :do (move! projectile seconds-since-last-update)
-          :when (has-common-area? (screen-rect game-state)
+          :when (has-common-area? screen-rect
                                   (position-rect projectile))
             :do (vector-push-extend projectile new-projectiles-vector))
     (setf (projectiles game-state) new-projectiles-vector)))

@@ -77,3 +77,14 @@
     (is (g::rectangle= (g::make-rectangle-by-coords 108 -1 109 2)
                        on-boundary))
     (is (= (length (g::projectiles game-state)) 0))))
+
+(test projectiles-kill-enemies-on-contact
+  (let+ ((game-state (g::mk-initial-game-state))
+         (projectile (g::new-player-projectile (g::player-state game-state)
+                                               (g::make-vector2d 0 -1)))
+         (_ (setf (g::position-rect projectile)
+               (make-rectangle-by-size 20 80 1 3)))
+         (_ (vector-push-extend projectile (g::projectiles game-state)))
+         (_ (g::update! game-state 0.5d0)))
+    (is (= (length (g::projectiles game-state)) 0))
+    ))

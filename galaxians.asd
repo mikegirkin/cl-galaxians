@@ -4,7 +4,8 @@
   :serial t
   :components
   ((:module "src"
-    :components ((:file "package")
+    :components ((:file "geometry")
+                 (:file "package")
                  (:file "game-state")
                  (:file "render")
                  (:file "main")))

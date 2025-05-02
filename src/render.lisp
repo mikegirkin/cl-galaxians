@@ -55,7 +55,7 @@
 (defmethod world-to-gfx ((single-coord integer))
   (* single-coord +scale+))
 
-(defmethod world-to-gfx ((rect rectangle))
+(defmethod world-to-gfx ((rect geometry:rectangle))
   (make-rectangle-by-coords (world-to-gfx (x1 rect))
                             (world-to-gfx (y1 rect))
                             (world-to-gfx (x2 rect))
