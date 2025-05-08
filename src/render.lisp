@@ -22,14 +22,17 @@
 
 (defun render-player (game-state)
   (let* ((player-state (player-state game-state))
+         (player-rect-gfx (-> player-state
+                            as-rectangle
+                            world-to-gfx))
          (half-player-size (/ +player-width+ 2)))
     (al:draw-scaled-bitmap (sprites-main-ship (sprites game-state))
                            8 8
                            32 32
-                           (world-to-gfx (- (x player-state) half-player-size))
-                           (world-to-gfx (- (y player-state) half-player-size))
-                           (world-to-gfx +player-width+)
-                           (world-to-gfx +player-width+)
+                           (left player-rect-gfx)
+                           (top player-rect-gfx)
+                           (rectangle-width player-rect-gfx)
+                           (rectangle-height player-rect-gfx)
                            nil)))
 
 (defun enemy-sprite-for (enemy-type game-state)
@@ -42,33 +45,40 @@
 (defun render-enemies (game-state)
   (loop :for enemy-ship :across (enemies game-state)
         :for sprite = (enemy-sprite-for (ship-type enemy-ship) game-state)
+        :for enemy-ship-rect-gfx = (world-to-gfx (ship-position enemy-ship))
         :do (al:draw-scaled-bitmap sprite
                                    0 0
                                    32 32
-                                   (world-to-gfx (x1 (ship-position enemy-ship)))
-                                   (world-to-gfx (y1 (ship-position enemy-ship)))
-                                   (world-to-gfx (rectangle-width (ship-position enemy-ship)))
-                                   (world-to-gfx (rectangle-height (ship-position enemy-ship)))
-                                   nil
-                                   )))
+                                   (left enemy-ship-rect-gfx)
+                                   (top enemy-ship-rect-gfx)
+                                   (rectangle-width enemy-ship-rect-gfx)
+                                   (rectangle-height enemy-ship-rect-gfx)
+                                   nil)))
 
-(defmethod world-to-gfx ((single-coord integer))
-  (* single-coord +scale+))
+(defmethod world-to-gfx-x ((x-coord integer))
+  (* x-coord +scale+))
 
-(defmethod world-to-gfx ((rect geometry:rectangle))
-  (make-rectangle-by-coords (world-to-gfx (x1 rect))
-                            (world-to-gfx (y1 rect))
-                            (world-to-gfx (x2 rect))
-                            (world-to-gfx (y2 rect))))
+(defmethod world-to-gfx-y ((y-coord integer))
+  (* (- +game-screen-height+ y-coord) +scale+))
+
+(defmethod world-to-gfx ((single-point point2d))
+  (make-point2d (world-to-gfx-x (point-x single-point))
+                (world-to-gfx-y (point-y single-point))))
+
+(defmethod world-to-gfx ((rect rectangle))
+  (make-rectangle-by-coords (world-to-gfx-x (x1 rect))
+                            (world-to-gfx-y (y1 rect))
+                            (world-to-gfx-x (x2 rect))
+                            (world-to-gfx-y (y2 rect))))
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
   (render-player game-state)
   (render-enemies game-state)
-  (al:draw-line (world-to-gfx 16)
-                (world-to-gfx 0)
-                (world-to-gfx 16)
-                (world-to-gfx 200)
+  (al:draw-line (world-to-gfx-x 16)
+                (world-to-gfx-y 0)
+                (world-to-gfx-x 16)
+                (world-to-gfx-y 200)
                 (al:map-rgb 20 20 20)
                 1)
   (al:flip-display))

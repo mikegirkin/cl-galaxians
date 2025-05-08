@@ -23,9 +23,9 @@ Then
 ## TODOs
 
 - [x] projectiles movement
-- [ ] static enemies destroying
+- [x] static enemies destroying
     - [x] fix `has-common-area?` func
-    - [ ] implement collision detector based on vectors
+    - [x] WONTDO: implement collision detector based on vectors
 - [ ] use std decart system for geometry, invert only on drawing
 - [ ] projectile rendering
 - [ ] enemy movement

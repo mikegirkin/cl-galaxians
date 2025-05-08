@@ -43,6 +43,12 @@
                  :x (+ (x player-state) (/ (get-width player-state) 2.0))
                  :y (+ (y player-state) (/ (get-width player-state) 2.0))))
 
+(defmethod as-rectangle ((player-state player-state))
+  (make-rectangle-by-size (x player-state)
+                          (y player-state)
+                          (get-width player-state)
+                          (get-width player-state)))
+
 (defstruct sprites
   main-ship
   drone-ship
@@ -106,7 +112,7 @@
     (mk-projectile-state projectile-position-rect speed-vector t)))
 
 (defclass game-state ()
-  ((player-state :initform (make-instance 'player-state :x 100 :y 150)
+  ((player-state :initform (make-player-state 150 20)
                  :type player-state
                  :accessor player-state)
    (enemies :initform (mk-initial-enemy-state)
@@ -134,21 +140,23 @@
          :type boolean
          :accessor game-state-quit)))
 
-(defun mk-initial-game-state ()
+(defmethod print-object ((obj game-state) out)
+  (with-slots (player-state enemies) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "player-state:~A enemies:~A" player-state enemies))))
+
+(defun make-initial-game-state ()
   (make-instance 'game-state))
 
 (defun limit-by (min-value max-value value)
   (min max-value
        (max min-value value)))
 
-(defun get-time-now ()
-  (al:get-time))
-
 (defun mk-initial-ship-state (row col ship-type)
   (make-instance 'enemy-ship-state
                  :ship-position (make-rectangle-by-size
                                  (* (+ col 1) 16)
-                                 (* row 16)
+                                 (+ (* row 16) 132)
                                  15
                                  15)
                  :ship-type ship-type))
@@ -157,13 +165,13 @@
   (append
    (loop :for col :from 0 :to 9
          :append (loop
-                   :for row :from 4 :downto 2
+                   :for row :from 0 :to 2
                    :collect (mk-initial-ship-state row col :drone)))
    (loop :for col :from 1 :to 8
-         :with row := 1
+         :with row := 3
          :collect (mk-initial-ship-state row col :sentry))
    (loop :for col :from 2 :to 7
-         :with row := 0
+         :with row := 4
          :collect (mk-initial-ship-state row col :guardian))))
 
 (defmethod initialize-enemies! ((game-state game-state))
@@ -195,7 +203,7 @@
                          (ms-since-last-update double-float))
   (if (and (fire (requested-player-actions game-state))
            (= (reload-time-left game-state) 0))
-      (let* ((projectile-vector (make-vector2d 0 (- +player-projectile-speed+)))
+      (let* ((projectile-vector (make-vector2d 0 +player-projectile-speed+))
              (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
         (vector-push-extend new-projectile (projectiles game-state))
         (setf (reload-time-left game-state) +player-reload-time-seconds+))))

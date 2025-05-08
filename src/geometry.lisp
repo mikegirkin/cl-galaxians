@@ -11,6 +11,7 @@
            #:mul-scalar
            #:rectangle
            #:x1 #:y1 #:x2 #:y2
+           #:left #:top #:right #:bottom
            #:make-rectangle-by-coords
            #:make-rectangle-by-size
            #:rectangle=
@@ -151,14 +152,21 @@
                              (rect-to-check rectangle))
   (or
    (within-rectangle? boundary-rect
-                     (make-point2d (x1 rect-to-check) (y1 rect-to-check)))
+                      (make-point2d (x1 rect-to-check) (y1 rect-to-check)))
    (within-rectangle? boundary-rect
-                     (make-point2d (x1 rect-to-check) (y2 rect-to-check)))
+                      (make-point2d (x1 rect-to-check) (y2 rect-to-check)))
    (within-rectangle? boundary-rect
-                     (make-point2d (x2 rect-to-check) (y1 rect-to-check)))
+                      (make-point2d (x2 rect-to-check) (y1 rect-to-check)))
    (within-rectangle? boundary-rect
-                     (make-point2d (x2 rect-to-check) (y2 rect-to-check)))
-   (has-common-area? rect-to-check boundary-rect)))
+                      (make-point2d (x2 rect-to-check) (y2 rect-to-check)))
+   (within-rectangle? rect-to-check
+                      (make-point2d (x1 boundary-rect) (y1 boundary-rect)))
+   (within-rectangle? rect-to-check
+                      (make-point2d (x1 boundary-rect) (y2 boundary-rect)))
+   (within-rectangle? rect-to-check
+                      (make-point2d (x2 boundary-rect) (y1 boundary-rect)))
+   (within-rectangle? rect-to-check
+                      (make-point2d (x2 boundary-rect) (y2 boundary-rect)))))
 
 (defmethod within-rectangle? ((boundary-rect rectangle)
                               (point point2d))

@@ -2,6 +2,7 @@
 
 (defparameter +window-width+ (* +game-screen-width+ +scale+))
 (defparameter +window-height+ (* +game-screen-height+ +scale+))
+(defparameter +timer-tick-length-seconds+ 0.01d0)
 
 (defun initialize ()
   (unless (al:init)
@@ -55,7 +56,7 @@
     (initialize)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (frame-timer (al:create-timer))
+           (frame-timer (al:create-timer +timer-tick-length-seconds+))
            (game-state (make-initial-game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
@@ -64,7 +65,7 @@
       (al:register-event-source event-queue
                                 (al:get-display-event-source display))
       (al:register-event-source event-queue
-                                (al:get-timer-event-source timer))
+                                (al:get-timer-event-source frame-timer))
       (al:install-keyboard)
       (al:register-event-source event-queue
                                 (al:get-keyboard-event-source))
@@ -73,6 +74,7 @@
       ;;                           (al:get-mouse-event-source))
       (load-sprites! game-state)
       (initialize-enemies! game-state)
+      (al:start-timer frame-timer)
       (unwind-protect
            (progn
              (livesupport:setup-lisp-repl)
@@ -105,7 +107,8 @@
     (:d (setf (move-right (requested-player-actions game-state)) nil))))
 
 (defun handle-timer-event (timer-count game-state)
-  (update* game-state)
+  (update! game-state
+           (* timer-count +timer-tick-length-seconds+))
   (render game-state))
 
 (defun process-event-queue (event-queue game-state)

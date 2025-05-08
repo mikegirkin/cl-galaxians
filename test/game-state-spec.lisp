@@ -27,15 +27,15 @@
                        (g::make-rectangle-by-size 28 20 1 3)))))
 
 (test player-fires-if-reload-time-passed
-  (let* ((game-state (g::mk-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state))
          (_1 (setf (g::fire (g::requested-player-actions game-state)) t))
          (_1 (g::player-fire! game-state 10d0))
          (added-projectile (elt (g::projectiles game-state) 0)))
     (is (g::rectangle= (g::position-rect added-projectile)
-                       (g::make-rectangle-by-coords 108 150 109 153)))))
+                       (g::make-rectangle-by-coords 158 20 159 23)))))
 
 (test player-cant-fire-when-reloading
-  (let* ((game-state (g::mk-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state))
          (_ (setf (g::reload-time-left game-state) 10))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 10d0))
@@ -43,7 +43,7 @@
     (is (= projectiles-count 0))))
 
 (test projectiles-are-moved-on-update
-  (let* ((game-state (g::mk-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
          (projectile (elt (g::projectiles game-state) 0))
@@ -60,31 +60,31 @@
     (is (= old-x1 new-x1))
     (is (= old-x2 new-x2))
     (is (g::float-eql new-y1
-                      (- old-y1 1.0)
+                      (+ old-y1 1.0)
                       :epsilon 1d-6))
     (is (g::float-eql new-y2
-                      (- old-y2 1.0)
+                      (+ old-y2 1.0)
                       :epsilon 1d-6))))
 
 (test projectiles-disappear-when-leaving-window
-  (let* ((game-state (g::mk-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
-         (_ (g::update! game-state 15.1d0))
+         (_ (g::update! game-state 17.8d0))
          (projectile (elt (g::projectiles game-state) 0))
          (on-boundary (g::copy (g::position-rect projectile)))
          (_ (g::update! game-state 20d0)))
-    (is (g::rectangle= (g::make-rectangle-by-coords 108 -1 109 2)
+    (is (g::rectangle= (g::make-rectangle-by-coords 158 198 159 201)
                        on-boundary))
     (is (= (length (g::projectiles game-state)) 0))))
 
 (test projectiles-kill-enemies-on-contact
-  (let+ ((game-state (g::mk-initial-game-state))
+  (let+ ((game-state (g::make-initial-game-state))
          (projectile (g::new-player-projectile (g::player-state game-state)
                                                (g::make-vector2d 0 -1)))
          (_ (setf (g::position-rect projectile)
-               (make-rectangle-by-size 20 80 1 3)))
+               (make-rectangle-by-size 20 125 1 3)))
          (_ (vector-push-extend projectile (g::projectiles game-state)))
-         (_ (g::update! game-state 0.5d0)))
+         (_ (g::update! game-state 1d0)))
     (is (= (length (g::projectiles game-state)) 0))
     ))
