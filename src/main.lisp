@@ -77,16 +77,21 @@
       (al:start-timer frame-timer)
       (unwind-protect
            (progn
-             (livesupport:setup-lisp-repl)
-             (trivial-garbage:gc :full t)
+             ;(livesupport:setup-lisp-repl)
+             ;(trivial-garbage:gc :full t)
              (al:with-current-keyboard-state state
                (loop :named event-loop
-                     :with ticks :of-type double-float := (al:get-time)
-                     :with last-repl-update :of-type double-float := ticks
-                     :with dt :of-type double-float := 0d0
+                     ;:with ticks :of-type double-float := (al:get-time)
+                     ;:with last-repl-update :of-type double-float := ticks
+                     ;:with dt :of-type double-float := 0d0
                      :while (not (game-state-quit game-state))
-                     :do (process-event-queue event-queue game-state)
-                         (al:wait-for-event-timed event-queue (cffi:null-pointer) 0.005))))
+                     :do (let ((timer (al:get-time)))
+                           (process-event-queue event-queue game-state)
+                           (update! game-state timer)
+                           (render game-state)
+                           )
+                        )))
+;                         (al:wait-for-event-timed event-queue (cffi:null-pointer) 0.01))))
         (shutdown display event-queue frame-timer))))
   0)
 
@@ -110,8 +115,9 @@
 
 (defun handle-timer-event (timer-count game-state)
   (update! game-state
-           (* timer-count +timer-tick-length-seconds+))
-  (render game-state))
+            (* timer-count +timer-tick-length-seconds+))
+  (time
+   (render game-state)))
 
 (defun process-event-queue (event-queue game-state)
   (cffi:with-foreign-object (event '(:union al:event))
@@ -126,10 +132,10 @@
                                                                          '(:struct al:keyboard-event)
                                                                          'al::keycode)
                                                 game-state))
-                  (:timer (handle-timer-event (cffi:foreign-slot-value event
-                                                                       '(:struct al:timer-event)
-                                                                       'al::count)
-                                              game-state))
+;                  (:timer (handle-timer-event (cffi:foreign-slot-value event
+;                                                                       '(:struct al:timer-event)
+;                                                                       'al::count)
+;                                              game-state))
                   (:display-close (setf (game-state-quit game-state) t)))))))
 
 (defun main ()

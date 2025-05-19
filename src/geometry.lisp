@@ -72,16 +72,16 @@
                  (* (dy vector) scalar)))
 
 (defclass rectangle ()
-  ((x1 :initform 0
+  ((x1 :initform 0d0
        :initarg :x1
        :accessor x1)
-   (y1 :initform 0
+   (y1 :initform 0d0
        :initarg :y1
        :accessor y1)
-   (x2 :initform 0
+   (x2 :initform 0d0
        :initarg :x2
        :accessor x2)
-   (y2 :initform 0
+   (y2 :initform 0d0
        :initarg :y2
        :accessor y2)))
 

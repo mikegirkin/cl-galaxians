@@ -1,3 +1,3 @@
-(ql:quickload :galaxians)
+(quicklisp:quickload :galaxians)
 
 (galaxians:main)

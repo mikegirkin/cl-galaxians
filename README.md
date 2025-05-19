@@ -3,10 +3,10 @@
 ## Running
 
 ```sh
-sbcl
+sbcl --load runner.lisp
 ```
 
-Then
+Or start `sbcl` and then
 
 ```cl
 (ql:quickload :galaxians)

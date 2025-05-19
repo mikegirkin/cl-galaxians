@@ -36,7 +36,7 @@
 
 (test player-cant-fire-when-reloading
   (let* ((game-state (g::make-initial-game-state))
-         (_ (setf (g::reload-time-left game-state) 10))
+         (_ (setf (g::reload-time-left game-state) 20))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 10d0))
          (projectiles-count (length (g::projectiles game-state))))
@@ -70,6 +70,7 @@
   (let* ((game-state (g::make-initial-game-state))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
+         (_ (setf (g::fire (g::requested-player-actions game-state)) nil))
          (_ (g::update! game-state 17.8d0))
          (projectile (elt (g::projectiles game-state) 0))
          (on-boundary (g::copy (g::position-rect projectile)))
@@ -85,10 +86,8 @@
          (_ (setf (g::position-rect projectile)
                   (make-rectangle-by-size 20 130 1 3)))
          (_ (vector-push-extend projectile (g::projectiles game-state)))
-         (_ (pprint game-state))
          (_ (g::update! game-state 1d0)))
-    (is (= (length (g::projectiles game-state))
-           0))
+    (is (= 0 (length (g::projectiles game-state))))
     (is (= (length (g::enemies game-state))
            43))
     ))

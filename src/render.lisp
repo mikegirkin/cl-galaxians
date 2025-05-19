@@ -20,6 +20,22 @@
   (setf (sprites-sentry-ship (sprites game-state)) (load-bitmap +enemy-ship-sentry+))
   (setf (sprites-guardian-ship (sprites game-state)) (load-bitmap +enemy-ship-guardian+)))
 
+(defun world-to-gfx-x (x-coord)
+  (* x-coord +scale+))
+
+(defun world-to-gfx-y (y-coord)
+  (* (- +game-screen-height+ y-coord) +scale+))
+
+(defmethod world-to-gfx ((single-point point2d))
+  (make-point2d (world-to-gfx-x (point-x single-point))
+                (world-to-gfx-y (point-y single-point))))
+
+(defmethod world-to-gfx ((rect rectangle))
+  (make-rectangle-by-coords (world-to-gfx-x (x1 rect))
+                            (world-to-gfx-y (y1 rect))
+                            (world-to-gfx-x (x2 rect))
+                            (world-to-gfx-y (y2 rect))))
+
 (defun render-player (game-state)
   (let* ((player-state (player-state game-state))
          (player-rect-gfx (-> player-state
@@ -55,25 +71,19 @@
                                    (rectangle-height enemy-ship-rect-gfx)
                                    nil)))
 
-(defmethod world-to-gfx-x ((x-coord integer))
-  (* x-coord +scale+))
-
-(defmethod world-to-gfx-y ((y-coord integer))
-  (* (- +game-screen-height+ y-coord) +scale+))
-
-(defmethod world-to-gfx ((single-point point2d))
-  (make-point2d (world-to-gfx-x (point-x single-point))
-                (world-to-gfx-y (point-y single-point))))
-
-(defmethod world-to-gfx ((rect rectangle))
-  (make-rectangle-by-coords (world-to-gfx-x (x1 rect))
-                            (world-to-gfx-y (y1 rect))
-                            (world-to-gfx-x (x2 rect))
-                            (world-to-gfx-y (y2 rect))))
+(defun render-projectiles (game-state)
+  (loop :for projectile :across (projectiles game-state)
+        :for projectile-gfx-rect = (world-to-gfx (position-rect projectile))
+        :do (al:draw-filled-rectangle (x1 projectile-gfx-rect)
+                                      (y1 projectile-gfx-rect)
+                                      (x2 projectile-gfx-rect)
+                                      (y2 projectile-gfx-rect)
+                                      (al:map-rgb 255 255 255))))
 
 (defun render (game-state)
   (al:clear-to-color (al:map-rgb 0 0 0))
   (render-player game-state)
+  (render-projectiles game-state)
   (render-enemies game-state)
   (al:draw-line (world-to-gfx-x 16)
                 (world-to-gfx-y 0)

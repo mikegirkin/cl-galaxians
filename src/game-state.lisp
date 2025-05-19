@@ -5,10 +5,13 @@
 (defparameter +player-width+ 16)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
-(defparameter +player-projectile-speed+ 10)
-(defparameter +player-reload-time-seconds+ 0.25d0)
+(defparameter +player-projectile-speed+ 50)
+(defparameter +player-reload-time-seconds+ 0.5d0)
 (defparameter +game-screen-width+ 320)
 (defparameter +game-screen-height+ 200)
+(defparameter +player-width+ 16)
+(defparameter +enemy-ship-size+ 12)
+(defparameter +general-cell-size+ 16)
 
 (defun float-eql (a b &key epsilon)
   (if epsilon
@@ -61,6 +64,11 @@
    (move-left :initform nil :accessor move-left)
    (move-right :initform nil :accessor move-right)
    (fire :initform nil :accessor fire)))
+
+(defmethod print-object ((obj requested-player-actions) out)
+  (with-slots (move-left move-right fire) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "move-left:~A move-right:~A fire:~A" move-left move-right fire))))
 
 (deftype enemy-type () '(member :drone :sentry :guardian))
 
@@ -141,9 +149,9 @@
          :accessor game-state-quit)))
 
 (defmethod print-object ((obj game-state) out)
-  (with-slots (player-state enemies) obj
+  (with-slots (player-state enemies projectiles) obj
     (print-unreadable-object (obj out :type t)
-      (format out "player-state:~A enemies:~A" player-state enemies))))
+      (format out "player-state:~A~%  enemies:~A~%  projectiles:~A" player-state enemies projectiles))))
 
 (defun make-initial-game-state ()
   (make-instance 'game-state))
@@ -155,10 +163,10 @@
 (defun mk-initial-ship-state (row col ship-type)
   (make-instance 'enemy-ship-state
                  :position-rect (make-rectangle-by-size
-                                 (* (+ col 1) 16)
-                                 (+ (* row 16) 132)
-                                 15
-                                 15)
+                                 (* (+ col 1) +general-cell-size+)
+                                 (+ (* row +general-cell-size+) 132)
+                                 +enemy-ship-size+
+                                 +enemy-ship-size+)
                  :ship-type ship-type))
 
 (defun mk-initial-enemy-state ()
