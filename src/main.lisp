@@ -97,14 +97,16 @@
     (:w (setf (move-up (requested-player-actions game-state)) t))
     (:s (setf (move-down (requested-player-actions game-state)) t))
     (:a (setf (move-left (requested-player-actions game-state)) t))
-    (:d (setf (move-right (requested-player-actions game-state)) t))))
+    (:d (setf (move-right (requested-player-actions game-state)) t))
+    (:space (setf (fire (requested-player-actions game-state)) t))))
 
 (defun handle-key-up-event (keycode game-state)
   (case keycode
     (:w (setf (move-up (requested-player-actions game-state)) nil))
     (:s (setf (move-down (requested-player-actions game-state)) nil))
     (:a (setf (move-left (requested-player-actions game-state)) nil))
-    (:d (setf (move-right (requested-player-actions game-state)) nil))))
+    (:d (setf (move-right (requested-player-actions game-state)) nil))
+    (:space (setf (fire (requested-player-actions game-state)) nil))))
 
 (defun handle-timer-event (timer-count game-state)
   (update! game-state

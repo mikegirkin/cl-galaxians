@@ -65,17 +65,17 @@
 (deftype enemy-type () '(member :drone :sentry :guardian))
 
 (defclass enemy-ship-state ()
-  ((ship-position :initarg :ship-position
+  ((position-rect :initarg :position-rect
                   :type rectangle
-                  :accessor ship-position)
+                  :accessor position-rect)
    (ship-type :initarg :ship-type
               :type enemy-type
               :accessor ship-type)))
 
 (defmethod print-object ((obj enemy-ship-state) out)
-  (with-slots (ship-position ship-type) obj
+  (with-slots (position-rect ship-type) obj
     (print-unreadable-object (obj out :type t)
-      (format out "position:~A type:~A" ship-position ship-type))))
+      (format out "position:~A type:~A" position-rect ship-type))))
 
 (defclass projectile-state ()
   ((position-rect :initarg :rect
@@ -92,7 +92,7 @@
   (make-instance 'projectile-state
                  :rect position-rect
                  :speed-vector speed-vector
-                 :is-player-owned t))
+                 :is-player-owned is-player-owned))
 
 (defmethod print-object ((obj projectile-state) out)
   (with-slots (position-rect speed-vector is-player-owned) obj
@@ -100,8 +100,8 @@
       (format out "position-rect:~A speed-vector:~A is-player-owned:~A" position-rect speed-vector is-player-owned))))
 
 (defmethod move! ((projectile projectile-state)
-                  (ms-since-last-update double-float))
-  (let* ((movement-vector (mul-scalar (speed-vector projectile) ms-since-last-update)))
+                  (seconds-since-last-update double-float))
+  (let* ((movement-vector (mul-scalar (speed-vector projectile) seconds-since-last-update)))
     (move-rect! (position-rect projectile) movement-vector)))
 
 (defun new-player-projectile (player-state speed-vector)
@@ -154,7 +154,7 @@
 
 (defun mk-initial-ship-state (row col ship-type)
   (make-instance 'enemy-ship-state
-                 :ship-position (make-rectangle-by-size
+                 :position-rect (make-rectangle-by-size
                                  (* (+ col 1) 16)
                                  (+ (* row 16) 132)
                                  15
@@ -178,17 +178,45 @@
   (let ((enemies (mk-initial-enemy-state)))
     (setf (enemies game-state) (coerce enemies 'vector))))
 
+(defmethod within-screen? ((game-state game-state)
+                            item)
+  (let* ((screen-rect (screen-rect game-state))
+         (item-rect (position-rect item)))
+    (has-common-area? screen-rect item-rect)))
+
+(defmethod get-enemy-hit ((game-state game-state)
+                          (projectile projectile-state))
+  (find-if (lambda (enemy) (has-common-area? (position-rect projectile)
+                                             (position-rect enemy)))
+           (enemies game-state)))
+
+(defmethod process-enemy-hits! ((game-state game-state))
+  (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
+                                             :fill-pointer 0
+                                             :adjustable t)))
+    (loop :for projectile :across (projectiles game-state)
+          :if (is-player-owned projectile)
+            :do (a:if-let ((enemy (get-enemy-hit game-state projectile)))
+                  (setf (enemies game-state)
+                        (remove enemy (enemies game-state)))
+                                        ;TODO: add enemy killed animation
+                  (vector-push-extend projectile new-projectiles-vector))
+          :else :do
+            (vector-push-extend projectile new-projectiles-vector))
+    (setf (projectiles game-state) new-projectiles-vector)))
+
 (defmethod move-projectiles! ((game-state game-state)
                               (seconds-since-last-update double-float))
   (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
                                              :fill-pointer 0
-                                             :adjustable t))
-         (screen-rect (screen-rect game-state)))
+                                             :adjustable t)))
     (loop :for projectile :across (projectiles game-state)
-          :do (move! projectile seconds-since-last-update)
-          :when (has-common-area? screen-rect
-                                  (position-rect projectile))
-            :do (vector-push-extend projectile new-projectiles-vector))
+          :do (move! projectile seconds-since-last-update))
+    (process-enemy-hits! game-state)
+    (loop :for projectile :across (projectiles game-state)
+          :do (cond
+                ((within-screen? game-state projectile)
+                 (vector-push-extend projectile new-projectiles-vector))))
     (setf (projectiles game-state) new-projectiles-vector)))
 
 (defmethod move-player! ((game-state game-state))
@@ -200,7 +228,11 @@
     (setf (x (player-state game-state)) new-x)))
 
 (defmethod player-fire! ((game-state game-state)
-                         (ms-since-last-update double-float))
+                         (seconds-since-last-update double-float))
+  (if (> (reload-time-left game-state) 0)
+      (setf (reload-time-left game-state)
+            (max (- (reload-time-left game-state) seconds-since-last-update)
+                 0)))
   (if (and (fire (requested-player-actions game-state))
            (= (reload-time-left game-state) 0))
       (let* ((projectile-vector (make-vector2d 0 +player-projectile-speed+))
@@ -210,8 +242,8 @@
 
 (defmethod update! ((game-state game-state)
                     (seconds-now double-float))
-  (let* ((ms-since-last-update (- seconds-now (last-update-seconds game-state))))
-    (move-projectiles! game-state ms-since-last-update)
-    (player-fire! game-state ms-since-last-update)
+  (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
+    (move-projectiles! game-state seconds-since-last-update)
+    (player-fire! game-state seconds-since-last-update)
     (move-player! game-state)
     (setf (last-update-seconds game-state) seconds-now)))

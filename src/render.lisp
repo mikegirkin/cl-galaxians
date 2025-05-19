@@ -45,7 +45,7 @@
 (defun render-enemies (game-state)
   (loop :for enemy-ship :across (enemies game-state)
         :for sprite = (enemy-sprite-for (ship-type enemy-ship) game-state)
-        :for enemy-ship-rect-gfx = (world-to-gfx (ship-position enemy-ship))
+        :for enemy-ship-rect-gfx = (world-to-gfx (position-rect enemy-ship))
         :do (al:draw-scaled-bitmap sprite
                                    0 0
                                    32 32

@@ -26,7 +26,8 @@ Then
 - [x] static enemies destroying
     - [x] fix `has-common-area?` func
     - [x] WONTDO: implement collision detector based on vectors
-- [ ] use std decart system for geometry, invert only on drawing
+- [x] use std decart system for geometry, invert only on drawing
+- [x] killing enemies
 - [ ] projectile rendering
 - [ ] enemy movement
 - [ ] enemy firing
