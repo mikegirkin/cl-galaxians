@@ -3,6 +3,8 @@
 (def-suite* game-state-spec)
 (in-suite game-state-spec)
 
+(defparameter test-game-config (g::make-game-config 3 10))
+
 (test make-rectangle-by-coords
   (let ((rect (g::make-rectangle-by-coords 10 20 30 40)))
     (is (= (g::x1 rect) 10))
@@ -27,7 +29,7 @@
                        (g::make-rectangle-by-size 28 20 1 3)))))
 
 (test player-fires-if-reload-time-passed
-  (let* ((game-state (g::make-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state test-game-config))
          (_1 (setf (g::fire (g::requested-player-actions game-state)) t))
          (_1 (g::player-fire! game-state 10d0))
          (added-projectile (elt (g::projectiles game-state) 0)))
@@ -35,7 +37,7 @@
                        (g::make-rectangle-by-coords 158 20 159 23)))))
 
 (test player-cant-fire-when-reloading
-  (let* ((game-state (g::make-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state test-game-config))
          (_ (setf (g::reload-time-left game-state) 20))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 10d0))
@@ -43,7 +45,7 @@
     (is (= projectiles-count 0))))
 
 (test projectiles-are-moved-on-update
-  (let* ((game-state (g::make-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state test-game-config))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
          (projectile (elt (g::projectiles game-state) 0))
@@ -67,7 +69,7 @@
                       :epsilon 1d-6))))
 
 (test projectiles-disappear-when-leaving-window
-  (let* ((game-state (g::make-initial-game-state))
+  (let* ((game-state (g::make-initial-game-state test-game-config))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
          (_ (setf (g::fire (g::requested-player-actions game-state)) nil))
@@ -80,7 +82,7 @@
     (is (= (length (g::projectiles game-state)) 0))))
 
 (test projectiles-kill-enemies-on-contact
-  (let+ ((game-state (g::make-initial-game-state))
+  (let+ ((game-state (g::make-initial-game-state test-game-config))
          (projectile (g::new-player-projectile (g::player-state game-state)
                                                (g::make-vector2d 0 10)))
          (_ (setf (g::position-rect projectile)

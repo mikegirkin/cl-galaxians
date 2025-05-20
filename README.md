@@ -28,7 +28,7 @@ Or start `sbcl` and then
     - [x] WONTDO: implement collision detector based on vectors
 - [x] use std decart system for geometry, invert only on drawing
 - [x] killing enemies
-- [ ] projectile rendering
+- [x] projectile rendering
 - [ ] enemy movement
 - [ ] enemy firing
 - [ ] generalize movement code

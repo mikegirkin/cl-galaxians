@@ -2,8 +2,6 @@
 
 (defparameter +window-width+ (* +game-screen-width+ +scale+))
 (defparameter +window-height+ (* +game-screen-height+ +scale+))
-(defparameter +timer-tick-length-seconds+ 0.01d0)
-
 (defun initialize ()
   (unless (al:init)
     (error "Initializing liballegro failed"))
@@ -23,10 +21,8 @@
   ;;   (error "Initializing default audio mixer failed"))
   )
 
-(defun shutdown (display event-queue frame-timer)
+(defun shutdown (display event-queue)
   (al:inhibit-screensaver nil)
-  (al:stop-timer frame-timer)
-  (al:destroy-timer frame-timer)
   (al:destroy-display display)
   (al:destroy-event-queue event-queue)
   (al:stop-samples)
@@ -54,9 +50,11 @@
     ;; ;    (setf *fpsp* (al:get-config-value (al:get-system-config)
                                         ;                                      "game" "show-fps"))
     (initialize)
+    (al:set-new-display-flags '(:windowed :opengl))
+    (al:set-new-display-option :vsync 0 :require)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (frame-timer (al:create-timer +timer-tick-length-seconds+))
+           (game-config (make-game-config 3 50))
            (game-state (make-initial-game-state)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
@@ -64,8 +62,6 @@
       (al:set-window-title display "Galaxians")
       (al:register-event-source event-queue
                                 (al:get-display-event-source display))
-      (al:register-event-source event-queue
-                                (al:get-timer-event-source frame-timer))
       (al:install-keyboard)
       (al:register-event-source event-queue
                                 (al:get-keyboard-event-source))
@@ -74,10 +70,9 @@
       ;;                           (al:get-mouse-event-source))
       (load-sprites! game-state)
       (initialize-enemies! game-state)
-      (al:start-timer frame-timer)
       (unwind-protect
            (progn
-             ;(livesupport:setup-lisp-repl)
+             (livesupport:setup-lisp-repl)
              ;(trivial-garbage:gc :full t)
              (al:with-current-keyboard-state state
                (loop :named event-loop
@@ -87,22 +82,21 @@
                      :while (not (game-state-quit game-state))
                      :do (let ((timer (al:get-time)))
                            (process-event-queue event-queue game-state)
-                           (update! game-state timer)
-                           (render game-state)
-                           )
-                        )))
-;                         (al:wait-for-event-timed event-queue (cffi:null-pointer) 0.01))))
-        (shutdown display event-queue frame-timer))))
+                           (unless (paused game-state)
+                             (update! game-state timer))
+                           (render game-state)))))
+        (shutdown display event-queue))))
   0)
 
 (defun handle-key-down-event (keycode game-state)
   (case keycode
     (:escape (setf (game-state-quit game-state) t))
-    (:p (pprint game-state))
+    (:fullstop (pprint game-state))
     (:w (setf (move-up (requested-player-actions game-state)) t))
     (:s (setf (move-down (requested-player-actions game-state)) t))
     (:a (setf (move-left (requested-player-actions game-state)) t))
     (:d (setf (move-right (requested-player-actions game-state)) t))
+    (:p (setf (paused game-state) (not (paused game-state))))
     (:space (setf (fire (requested-player-actions game-state)) t))))
 
 (defun handle-key-up-event (keycode game-state)
@@ -112,12 +106,6 @@
     (:a (setf (move-left (requested-player-actions game-state)) nil))
     (:d (setf (move-right (requested-player-actions game-state)) nil))
     (:space (setf (fire (requested-player-actions game-state)) nil))))
-
-(defun handle-timer-event (timer-count game-state)
-  (update! game-state
-            (* timer-count +timer-tick-length-seconds+))
-  (time
-   (render game-state)))
 
 (defun process-event-queue (event-queue game-state)
   (cffi:with-foreign-object (event '(:union al:event))
@@ -132,10 +120,6 @@
                                                                          '(:struct al:keyboard-event)
                                                                          'al::keycode)
                                                 game-state))
-;                  (:timer (handle-timer-event (cffi:foreign-slot-value event
-;                                                                       '(:struct al:timer-event)
-;                                                                       'al::count)
-;                                              game-state))
                   (:display-close (setf (game-state-quit game-state) t)))))))
 
 (defun main ()

@@ -1,11 +1,9 @@
 (in-package :galaxians)
 
 (defparameter +scale+ 6)
-(defparameter +player-movement-speed+ 3)
 (defparameter +player-width+ 16)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
-(defparameter +player-projectile-speed+ 50)
 (defparameter +player-reload-time-seconds+ 0.5d0)
 (defparameter +game-screen-width+ 320)
 (defparameter +game-screen-height+ 200)
@@ -119,6 +117,20 @@
          (projectile-position-rect (make-rectangle-by-size player-center-x player-center-y 1 3)))
     (mk-projectile-state projectile-position-rect speed-vector t)))
 
+(defclass game-config ()
+  ((player-speed :type integer
+                 :initarg :player-speed
+                 :reader player-speed)
+   (player-projectile-speed :type integer
+                            :initarg :player-projectile-speed
+                            :reader player-projectile-speed)))
+
+(defun make-game-config (&key (player-speed 3)
+                              (player-projectile-speed 50))
+  (make-instance 'game-config
+                 :player-speed player-speed
+                 :player-projectile-speed player-projectile-speed))
+
 (defclass game-state ()
   ((player-state :initform (make-player-state 150 20)
                  :type player-state
@@ -144,6 +156,11 @@
    (last-update-seconds :initform 0d0
                         :type double-float
                         :accessor last-update-seconds)
+   (game-config :type game-config
+                :initarg :game-config
+                :reader game-config)
+   (paused :initform nil
+           :accessor paused)
    (quit :initform nil
          :type boolean
          :accessor game-state-quit)))
@@ -153,8 +170,8 @@
     (print-unreadable-object (obj out :type t)
       (format out "player-state:~A~%  enemies:~A~%  projectiles:~A" player-state enemies projectiles))))
 
-(defun make-initial-game-state ()
-  (make-instance 'game-state))
+(defun make-initial-game-state (game-config)
+  (make-instance 'game-state :game-config game-config))
 
 (defun limit-by (min-value max-value value)
   (min max-value
@@ -227,10 +244,13 @@
                  (vector-push-extend projectile new-projectiles-vector))))
     (setf (projectiles game-state) new-projectiles-vector)))
 
-(defmethod move-player! ((game-state game-state))
-  (let* ((left (if (move-left (requested-player-actions game-state)) +player-movement-speed+ 0))
-         (right (if (move-right (requested-player-actions game-state)) +player-movement-speed+ 0))
-         (dx (- right left))
+(defmethod move-player! ((game-state game-state)
+                         (seconds-since-last-update double-float))
+  (let* ((player-speed (-> game-state game-config player-speed))
+         (left (if (move-left (requested-player-actions game-state)) player-speed 0))
+         (right (if (move-right (requested-player-actions game-state)) player-speed 0))
+         (total-speed (- right left))
+         (dx (* total-speed time-since-last-update))
          (new-x (limit-by +min-left-pos+ +max-right-pos+
                           (+ (x (player-state game-state)) dx))))
     (setf (x (player-state game-state)) new-x)))
@@ -243,7 +263,7 @@
                  0)))
   (if (and (fire (requested-player-actions game-state))
            (= (reload-time-left game-state) 0))
-      (let* ((projectile-vector (make-vector2d 0 +player-projectile-speed+))
+      (let* ((projectile-vector (make-vector2d 0 (-> game-state game-config player-projectile-speed)))
              (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
         (vector-push-extend new-projectile (projectiles game-state))
         (setf (reload-time-left game-state) +player-reload-time-seconds+))))
