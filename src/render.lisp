@@ -46,7 +46,7 @@
                            8 8
                            32 32
                            (left player-rect-gfx)
-                           (top player-rect-gfx)
+                           (bottom player-rect-gfx) ;GFX Y coords are opposite way
                            (rectangle-width player-rect-gfx)
                            (rectangle-height player-rect-gfx)
                            nil)))
@@ -66,7 +66,7 @@
                                    0 0
                                    32 32
                                    (left enemy-ship-rect-gfx)
-                                   (top enemy-ship-rect-gfx)
+                                   (bottom enemy-ship-rect-gfx) ;GFX Y coords are opposite way!
                                    (rectangle-width enemy-ship-rect-gfx)
                                    (rectangle-height enemy-ship-rect-gfx)
                                    nil)))

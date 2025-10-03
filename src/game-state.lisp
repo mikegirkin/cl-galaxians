@@ -4,7 +4,7 @@
 (defparameter +player-width+ 16)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
-(defparameter +player-reload-time-seconds+ 0.5d0)
+(defparameter +player-reload-time-seconds+ 1d0)
 (defparameter +game-screen-width+ 320)
 (defparameter +game-screen-height+ 200)
 (defparameter +player-width+ 16)
@@ -112,9 +112,9 @@
 
 (defun new-player-projectile (player-state speed-vector)
   (let* ((player-center-point (get-center player-state))
-         (player-center-x (point-x player-center-point))
-         (player-center-y (y player-state))
-         (projectile-position-rect (make-rectangle-by-size player-center-x player-center-y 1 3)))
+         (projectile-x (point-x player-center-point))
+         (projectile-y (top (as-rectangle player-state)))
+         (projectile-position-rect (make-rectangle-by-size projectile-x projectile-y 1 3)))
     (mk-projectile-state projectile-position-rect speed-vector t)))
 
 (defclass game-config ()
@@ -132,7 +132,7 @@
                  :player-projectile-speed player-projectile-speed))
 
 (defclass game-state ()
-  ((player-state :initform (make-player-state 150 20)
+  ((player-state :initform (make-player-state 150 0)
                  :type player-state
                  :accessor player-state)
    (enemies :initform (mk-initial-enemy-state)
@@ -181,7 +181,7 @@
   (make-instance 'enemy-ship-state
                  :position-rect (make-rectangle-by-size
                                  (* (+ col 1) +general-cell-size+)
-                                 (+ (* row +general-cell-size+) 132)
+                                 (+ (* row +general-cell-size+) 116)
                                  +enemy-ship-size+
                                  +enemy-ship-size+)
                  :ship-type ship-type))
@@ -222,9 +222,14 @@
     (loop :for projectile :across (projectiles game-state)
           :if (is-player-owned projectile)
             :do (a:if-let ((enemy (get-enemy-hit game-state projectile)))
+                  (progn
+                    (format t "Enemy hit: ~a~%" enemy)
+                    (format t "Projectile: ~a~%" projectile)
+                    (force-output)
                   (setf (enemies game-state)
                         (remove enemy (enemies game-state)))
                                         ;TODO: add enemy killed animation
+                  )
                   (vector-push-extend projectile new-projectiles-vector))
           :else :do
             (vector-push-extend projectile new-projectiles-vector))
@@ -250,7 +255,7 @@
          (left (if (move-left (requested-player-actions game-state)) player-speed 0))
          (right (if (move-right (requested-player-actions game-state)) player-speed 0))
          (total-speed (- right left))
-         (dx (* total-speed time-since-last-update))
+         (dx (* total-speed seconds-since-last-update))
          (new-x (limit-by +min-left-pos+ +max-right-pos+
                           (+ (x (player-state game-state)) dx))))
     (setf (x (player-state game-state)) new-x)))
@@ -273,5 +278,5 @@
   (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
     (move-projectiles! game-state seconds-since-last-update)
     (player-fire! game-state seconds-since-last-update)
-    (move-player! game-state)
+    (move-player! game-state seconds-since-last-update)
     (setf (last-update-seconds game-state) seconds-now)))

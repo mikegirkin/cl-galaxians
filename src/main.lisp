@@ -54,8 +54,9 @@
     (al:set-new-display-option :vsync 0 :require)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (game-config (make-game-config 3 50))
-           (game-state (make-initial-game-state)))
+           (game-config (make-game-config :player-speed 30
+                                          :player-projectile-speed 50))
+           (game-state (make-initial-game-state game-config)))
       (when (cffi:null-pointer-p display)
         (error "Initializing display failed"))
       (al:inhibit-screensaver t)

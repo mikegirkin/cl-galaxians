@@ -107,11 +107,11 @@
        (= (x2 r1) (x2 r2))
        (= (y2 r1) (y2 r2))))
 
-(defmethod copy ((r rectangle))
-  (make-rectangle-by-coords (x1 r)
-                            (y1 r)
-                            (x2 r)
-                            (y2 r)))
+(defmethod copy ((rect rectangle))
+  (make-rectangle-by-coords (x1 rect)
+                            (y1 rect)
+                            (x2 rect)
+                            (y2 rect)))
 
 (defmethod rectangle-width ((rectangle rectangle))
   (abs (- (x1 rectangle)
@@ -137,8 +137,16 @@
   (make-point2d (left rectangle)
                 (top rectangle)))
 
+(defmethod topright ((rectangle rectangle))
+  (make-point2d (right rectangle)
+                (top rectangle)))
+
 (defmethod bottomright ((rectangle rectangle))
   (make-point2d (right rectangle)
+                (bottom rectangle)))
+
+(defmethod bottomleft ((rectangle rectangle))
+  (make-point2d (left rectangle)
                 (bottom rectangle)))
 
 (defmethod move-rect! ((rect rectangle)
@@ -152,31 +160,33 @@
                              (rect-to-check rectangle))
   (or
    (within-rectangle? boundary-rect
-                      (make-point2d (x1 rect-to-check) (y1 rect-to-check)))
+                      (topleft rect-to-check))
    (within-rectangle? boundary-rect
-                      (make-point2d (x1 rect-to-check) (y2 rect-to-check)))
+                      (topright rect-to-check))
    (within-rectangle? boundary-rect
-                      (make-point2d (x2 rect-to-check) (y1 rect-to-check)))
+                      (bottomleft rect-to-check))
    (within-rectangle? boundary-rect
-                      (make-point2d (x2 rect-to-check) (y2 rect-to-check)))
+                      (bottomright rect-to-check))
    (within-rectangle? rect-to-check
-                      (make-point2d (x1 boundary-rect) (y1 boundary-rect)))
+                      (topleft boundary-rect))
    (within-rectangle? rect-to-check
-                      (make-point2d (x1 boundary-rect) (y2 boundary-rect)))
+                      (topright boundary-rect))
    (within-rectangle? rect-to-check
-                      (make-point2d (x2 boundary-rect) (y1 boundary-rect)))
+                      (bottomleft boundary-rect))
    (within-rectangle? rect-to-check
-                      (make-point2d (x2 boundary-rect) (y2 boundary-rect)))))
+                      (bottomright boundary-rect))))
 
 (defmethod within-rectangle? ((boundary-rect rectangle)
                               (point point2d))
   (let+ (((&accessors (x point-x)
                       (y point-y)) point)
-         ((&accessors (tl topleft)
-                      (br bottomright)) boundary-rect))
+         ((&accessors (rect-top top)
+                      (rect-bottom bottom)
+                      (rect-left left)
+                      (rect-right right)) boundary-rect))
     (and
-     (>= x (point-x tl))
-     (<= x (point-x br))
-     (>= y (point-y br))
-     (<= y (point-y tl)))))
+     (>= x rect-left)
+     (<= x rect-right)
+     (>= y rect-bottom)
+     (<= y rect-top))))
 

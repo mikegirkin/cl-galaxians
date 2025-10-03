@@ -3,7 +3,9 @@
 (def-suite* game-state-spec)
 (in-suite game-state-spec)
 
-(defparameter test-game-config (g::make-game-config 3 10))
+(defparameter test-game-config
+  (g::make-game-config :player-speed 3
+                       :player-projectile-speed 10))
 
 (test make-rectangle-by-coords
   (let ((rect (g::make-rectangle-by-coords 10 20 30 40)))
@@ -26,7 +28,7 @@
     (is (g::is-player-owned projectile))
     (is (g::vector2d= (g::speed-vector projectile) movement-vector))
     (is (g::rectangle= (g::position-rect projectile)
-                       (g::make-rectangle-by-size 28 20 1 3)))))
+                       (g::make-rectangle-by-size 28 36 1 3)))))
 
 (test player-fires-if-reload-time-passed
   (let* ((game-state (g::make-initial-game-state test-game-config))
@@ -34,7 +36,7 @@
          (_1 (g::player-fire! game-state 10d0))
          (added-projectile (elt (g::projectiles game-state) 0)))
     (is (g::rectangle= (g::position-rect added-projectile)
-                       (g::make-rectangle-by-coords 158 20 159 23)))))
+                       (g::make-rectangle-by-coords 158 16 159 19)))))
 
 (test player-cant-fire-when-reloading
   (let* ((game-state (g::make-initial-game-state test-game-config))
@@ -73,11 +75,11 @@
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 0d0))
          (_ (setf (g::fire (g::requested-player-actions game-state)) nil))
-         (_ (g::update! game-state 17.8d0))
+         (_ (g::update! game-state 18d0))
          (projectile (elt (g::projectiles game-state) 0))
          (on-boundary (g::copy (g::position-rect projectile)))
          (_ (g::update! game-state 20d0)))
-    (is (g::rectangle= (g::make-rectangle-by-coords 158 198 159 201)
+    (is (g::rectangle= (g::make-rectangle-by-coords 158 196 159 199)
                        on-boundary))
     (is (= (length (g::projectiles game-state)) 0))))
 
@@ -90,6 +92,4 @@
          (_ (vector-push-extend projectile (g::projectiles game-state)))
          (_ (g::update! game-state 1d0)))
     (is (= 0 (length (g::projectiles game-state))))
-    (is (= (length (g::enemies game-state))
-           43))
-    ))
+    (is (= (length (g::enemies game-state)) 43))))
