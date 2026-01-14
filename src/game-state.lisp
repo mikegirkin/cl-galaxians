@@ -1,10 +1,9 @@
 (in-package :galaxians)
 
 (defparameter +scale+ 6)
-(defparameter +player-width+ 16)
 (defparameter +min-left-pos+ 8)
 (defparameter +max-right-pos+ 200)
-(defparameter +player-reload-time-seconds+ 1d0)
+(defparameter +player-reload-time-seconds+ 1f0)
 (defparameter +game-screen-width+ 320)
 (defparameter +game-screen-height+ 200)
 (defparameter +player-width+ 16)
@@ -37,12 +36,11 @@
                  :y y))
 
 (defmethod get-width ((player-state player-state))
-  16)
+  +player-width+)
 
 (defmethod get-center ((player-state player-state))
-  (make-instance 'point2d
-                 :x (+ (x player-state) (/ (get-width player-state) 2.0))
-                 :y (+ (y player-state) (/ (get-width player-state) 2.0))))
+  (make-point2d (+ (x player-state) (/ (get-width player-state) 2f0))
+                (+ (y player-state) (/ (get-width player-state) 2f0))))
 
 (defmethod as-rectangle ((player-state player-state))
   (make-rectangle-by-size (x player-state)
@@ -56,6 +54,11 @@
   sentry-ship
   guardian-ship)
 
+(defclass animation ()
+  ((sprites :initform nil :accessor sprites)
+   (delay :initform nil :accessor delay) ;Time delay between switching
+   ))
+
 (defclass requested-player-actions ()
   ((move-up :initform nil :accessor move-up)
    (move-down :initform nil :accessor move-down)
@@ -68,6 +71,10 @@
     (print-unreadable-object (obj out :type t)
       (format out "move-left:~A move-right:~A fire:~A" move-left move-right fire))))
 
+(defclass movement-descriptor ()
+  ((trajectory)
+   (time-elapsed)))
+
 (deftype enemy-type () '(member :drone :sentry :guardian))
 
 (defclass enemy-ship-state ()
@@ -76,7 +83,11 @@
                   :accessor position-rect)
    (ship-type :initarg :ship-type
               :type enemy-type
-              :accessor ship-type)))
+              :accessor ship-type)
+   (movement-descriptor :initarg :movement-descriptor
+                        :initform nil
+                        :type enemy-movement-state
+                        :accessor :movement-descriptor)))
 
 (defmethod print-object ((obj enemy-ship-state) out)
   (with-slots (position-rect ship-type) obj
@@ -106,7 +117,7 @@
       (format out "position-rect:~A speed-vector:~A is-player-owned:~A" position-rect speed-vector is-player-owned))))
 
 (defmethod move! ((projectile projectile-state)
-                  (seconds-since-last-update double-float))
+                  (seconds-since-last-update single-float))
   (let* ((movement-vector (mul-scalar (speed-vector projectile) seconds-since-last-update)))
     (move-rect! (position-rect projectile) movement-vector)))
 
@@ -142,7 +153,7 @@
                 :type (vector projectile-state)
                 :accessor projectiles)
    (reload-time-left :initform 0
-                     :type integer
+                     :type single-float
                      :accessor reload-time-left)
    (requested-player-actions :initform (make-instance 'requested-player-actions)
                              :type requested-player-actions
@@ -153,8 +164,8 @@
    (sprites :initform (make-sprites)
             :type sprites
             :accessor sprites)
-   (last-update-seconds :initform 0d0
-                        :type double-float
+   (last-update-seconds :initform 0f0
+                        :type single-float
                         :accessor last-update-seconds)
    (game-config :type game-config
                 :initarg :game-config
@@ -236,7 +247,7 @@
     (setf (projectiles game-state) new-projectiles-vector)))
 
 (defmethod move-projectiles! ((game-state game-state)
-                              (seconds-since-last-update double-float))
+                              (seconds-since-last-update single-float))
   (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
                                              :fill-pointer 0
                                              :adjustable t)))
@@ -250,7 +261,7 @@
     (setf (projectiles game-state) new-projectiles-vector)))
 
 (defmethod move-player! ((game-state game-state)
-                         (seconds-since-last-update double-float))
+                         (seconds-since-last-update single-float))
   (let* ((player-speed (-> game-state game-config player-speed))
          (left (if (move-left (requested-player-actions game-state)) player-speed 0))
          (right (if (move-right (requested-player-actions game-state)) player-speed 0))
@@ -261,7 +272,7 @@
     (setf (x (player-state game-state)) new-x)))
 
 (defmethod player-fire! ((game-state game-state)
-                         (seconds-since-last-update double-float))
+                         (seconds-since-last-update single-float))
   (if (> (reload-time-left game-state) 0)
       (setf (reload-time-left game-state)
             (max (- (reload-time-left game-state) seconds-since-last-update)
@@ -274,7 +285,7 @@
         (setf (reload-time-left game-state) +player-reload-time-seconds+))))
 
 (defmethod update! ((game-state game-state)
-                    (seconds-now double-float))
+                    (seconds-now single-float))
   (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
     (move-projectiles! game-state seconds-since-last-update)
     (player-fire! game-state seconds-since-last-update)

@@ -4,14 +4,17 @@
   :serial t
   :components
   ((:module "src"
-    :components ((:file "geometry")
+    :components ((:file "geometry/package")
+                 (:file "geometry/geometry")
                  (:file "package")
                  (:file "game-state")
                  (:file "render")
                  (:file "main")))
    (:module "test"
     :components ((:file "package")
-                 (:file "game-state-spec"))))
+                 (:file "game-state-spec")
+                 (:file "geometry/package")
+                 (:file "geometry/trajectory-spec"))))
 
   :depends-on (:alexandria
                :cl-liballegro
