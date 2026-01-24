@@ -152,7 +152,7 @@
    (projectiles :initform (make-array 5 :fill-pointer 0 :adjustable t)
                 :type (vector projectile-state)
                 :accessor projectiles)
-   (reload-time-left :initform 0
+   (reload-time-left :initform 0f0
                      :type single-float
                      :accessor reload-time-left)
    (requested-player-actions :initform (make-instance 'requested-player-actions)

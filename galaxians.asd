@@ -6,6 +6,7 @@
   ((:module "src"
     :components ((:file "geometry/package")
                  (:file "geometry/geometry")
+                 (:file "geometry/trajectory")
                  (:file "package")
                  (:file "game-state")
                  (:file "render")

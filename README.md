@@ -29,8 +29,8 @@ Or start `sbcl` and then
 - [x] use std decart system for geometry, invert only on drawing
 - [x] killing enemies
 - [x] projectile rendering
-- [ ] enemy blowup rendering
 - [ ] enemy movement
+- [ ] enemy blowup rendering
 - [ ] enemy firing
 - [ ] generalize movement code
 
