@@ -1,5 +1,6 @@
 (defpackage :geometry
   (:use :cl :binding-arrows :let-plus)
+  (:local-nicknames (:a :alexandria))
   (:export #:point2d
            #:point2d=
            #:point-x #:point-y

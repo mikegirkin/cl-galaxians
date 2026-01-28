@@ -71,33 +71,55 @@
 (defclass trajectory-fragment ()
   ((curve :initarg :curve
           :type abstract-curve
-          :accessor curve)
-   (period :initarg :period
-           :type single-float
-           :accessor period)))
+          :reader curve)
+   (time-start :initarg :time-start
+               :type single-float
+               :reader time-start)
+   (time-end :initarg :time-end
+             :type single-float
+             :reader time-end)))
 
-(defun make-trajectory-fragment (curve period)
+(defun make-trajectory-fragment (curve time-start time-end)
+  (when (< time-end time-start)
+    (error 'simple-error :format-control "end (~a) must be >= start (~a)"
+                         :format-arguments (list time-end time-start)))
   (make-instance 'trajectory-fragment :curve curve
-                                      :period period))
+                                      :time-start time-start
+                                      :time-end time-end))
 
 (defmethod position-at ((fragment trajectory-fragment)
                         (time single-float))
-  (let* ((relative-time (/ time (period fragment))))
-    (position-at (curve fragment)
-                 relative-time)))
+  (with-slots (time-start time-end) fragment
+      (let* ((fragment-duration (- time-end time-start))
+             (relative-time (/ (- time time-start) fragment-duration)))
+        (position-at (curve fragment)
+                     relative-time))))
 
 (defmethod print-object ((fragment trajectory-fragment) stream)
   (print-unreadable-object (fragment stream :type t :identity t)
-    (with-slots (curve period) fragment
-      (format stream "curve=~a time=~,4f" curve period))))
+    (with-slots (curve time-start time-end) fragment
+      (format stream "curve=~a start=~,3f end=~,3f" curve time-start time-end))))
 
 (defclass trajectory ()
   ((fragments :initarg :fragments
               :type array
-              :accessor fragments)))
+              :reader fragments)))
 
-(defun make-trajectory (&rest fragments)
-  (make-instance 'trajectory :fragments (apply #'vector fragments)))
+(defun make-trajectory (first-fragment &rest fragments)
+  (let* ((fragments-v (apply #'vector (append (list first-fragment) fragments)))
+         (starts-at-zero (= 0f0 (time-start (elt fragments-v 0))))
+         (breaks-after-index (loop :for i :from 1 :below (length fragments-v)
+                                   :when (/= (time-end (aref fragments-v (- i 1)))
+                                             (time-start (aref fragments-v i)))
+                                     :return (- i 1)
+                                   :finally (return nil))))
+    (cond ((not starts-at-zero) (error 'simple-error
+                                       :format-control "first fragment must start at time 0"
+                                       :format-arguments nil))
+          (breaks-after-index (error 'simple-error
+                                     :format-control "fragments must be continuous; break between fragment ~a and ~a"
+                                     :format-arguments (list breaks-after-index (+ breaks-after-index 1))))
+          (t (make-instance 'trajectory :fragments fragments-v)))))
 
 (defmethod print-object ((traj trajectory) stream)
   (print-unreadable-object (traj stream :type t :identity t)
@@ -113,12 +135,9 @@
                         (time single-float))
   "Return a point2d for trajectory at time time."
   (loop :for fragment :across (fragments trajectory)
-        :for time-from-beginning = 0 :then (+ time-from-beginning (period fragment))
-        :for fragment-end-time = (+ time-from-beginning (period fragment))
-        :when (and (>= time time-from-beginning)
-                   (<= time fragment-end-time))
-          :return (position-at fragment
-                               (- time time-from-beginning))
+        :when (and (>= time (time-start fragment))
+                   (<= time (time-end fragment)))
+          :return (position-at fragment time)
         :finally (return nil)))
 
 (defgeneric velocity-at (trajectory time)

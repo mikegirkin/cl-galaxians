@@ -6,4 +6,4 @@
         :galaxians)
   (:import-from :let-plus
                 #:let+)
-  (:local-nicknames (:geo :geometry)))
+  (:local-nicknames (:a :alexandria)))
