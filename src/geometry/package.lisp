@@ -42,4 +42,7 @@
            #:make-trajectory
            #:position-at
            #:velocity-at
+
+           #:spline-vertex
+           #:make-spline-trajectory
            ))

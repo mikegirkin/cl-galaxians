@@ -234,13 +234,11 @@
           :if (is-player-owned projectile)
             :do (a:if-let ((enemy (get-enemy-hit game-state projectile)))
                   (progn
-                    (format t "Enemy hit: ~a~%" enemy)
-                    (format t "Projectile: ~a~%" projectile)
                     (force-output)
-                  (setf (enemies game-state)
-                        (remove enemy (enemies game-state)))
+                    (setf (enemies game-state)
+                          (remove enemy (enemies game-state)))
                                         ;TODO: add enemy killed animation
-                  )
+                    )
                   (vector-push-extend projectile new-projectiles-vector))
           :else :do
             (vector-push-extend projectile new-projectiles-vector))
