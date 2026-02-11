@@ -40,7 +40,7 @@
 
 (test player-cant-fire-when-reloading
   (let* ((game-state (g::make-initial-game-state test-game-config))
-         (_ (setf (g::reload-time-left game-state) 20))
+         (_ (setf (g::last-time-fired (g::player-state game-state)) 9.8f0))
          (_ (setf (g::fire (g::requested-player-actions game-state)) t))
          (_ (g::update! game-state 10f0))
          (projectiles-count (length (g::projectiles game-state))))

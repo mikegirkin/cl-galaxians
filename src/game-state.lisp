@@ -24,14 +24,14 @@
                     :accessor last-time-fired)))
 
 (defmethod print-object ((obj player-state) out)
-  (with-slots (x y) obj
+  (with-slots (position-rect last-time-fired) obj
     (print-unreadable-object (obj out :type t)
-      (format out "x:~A y:~A" x y))))
+      (format out "position:~A last-fired:~A" position-rect last-time-fired))))
 
 (defun make-player-state (x-center y-center)
   (let ((new-player-state (make-instance 'player-state
-                                           :position-rect nil
-                                           :last-time-fired nil)))
+                                         :position-rect nil
+                                         :last-time-fired -10f0)))
     (set-center new-player-state (make-point2d x-center y-center))
     new-player-state))
 
@@ -78,8 +78,15 @@
       (format out "move-left:~A move-right:~A fire:~A" move-left move-right fire))))
 
 (defclass movement-descriptor ()
-  ((trajectory)
-   (time-elapsed)))
+  ((trajectory :type trajectory)
+   (started-at :type single-float)))
+
+(defun make-movement-descriptor (trajectory started-at)
+  "Create a movement-descriptor instance holding TRAJECTORY and STARTED-AT.
+STARTED-AT is expected to be a single-float timestamp (seconds)."
+  (make-instance 'movement-descriptor
+                 :trajectory trajectory
+                 :started-at started-at))
 
 (deftype enemy-type () '(member :drone :sentry :guardian))
 
@@ -144,13 +151,13 @@
                             :reader player-projectile-speed)))
 
 (defun make-game-config (&key (player-speed 3)
-                              (player-projectile-speed 50))
+                           (player-projectile-speed 50))
   (make-instance 'game-config
                  :player-speed player-speed
                  :player-projectile-speed player-projectile-speed))
 
 (defclass game-state ()
-  ((player-state :initform (make-player-state 150 0)
+  ((player-state :initarg :player-state
                  :type player-state
                  :accessor player-state)
    (enemies :initform (mk-initial-enemy-state)
@@ -159,9 +166,6 @@
    (projectiles :initform (make-array 5 :fill-pointer 0 :adjustable t)
                 :type (vector projectile-state)
                 :accessor projectiles)
-   (reload-time-left :initform 0f0
-                     :type single-float
-                     :accessor reload-time-left)
    (requested-player-actions :initform (make-instance 'requested-player-actions)
                              :type requested-player-actions
                              :accessor requested-player-actions)
@@ -189,7 +193,9 @@
       (format out "player-state:~A~%  enemies:~A~%  projectiles:~A" player-state enemies projectiles))))
 
 (defun make-initial-game-state (game-config)
-  (make-instance 'game-state :game-config game-config))
+  (make-instance 'game-state
+                 :game-config game-config
+                 :player-state (make-player-state 150 0)))
 
 (defun limit-by (min-value max-value value)
   (min max-value
@@ -222,7 +228,7 @@
     (setf (enemies game-state) (coerce enemies 'vector))))
 
 (defmethod within-screen? ((game-state game-state)
-                            item)
+                           item)
   (let* ((screen-rect (screen-rect game-state))
          (item-rect (position-rect item)))
     (has-common-area? screen-rect item-rect)))
@@ -280,22 +286,23 @@
     (set-center (player-state game-state) new-center)))
 
 (defmethod player-fire! ((game-state game-state)
-                         (seconds-since-last-update single-float))
-  (if (> (reload-time-left game-state) 0)
-      (setf (reload-time-left game-state)
-            (max (- (reload-time-left game-state) seconds-since-last-update)
-                 0)))
-  (if (and (fire (requested-player-actions game-state))
-           (= (reload-time-left game-state) 0))
-      (let* ((projectile-vector (make-vector2d 0 (-> game-state game-config player-projectile-speed)))
-             (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
-        (vector-push-extend new-projectile (projectiles game-state))
-        (setf (reload-time-left game-state) +player-reload-time-seconds+))))
+                         (seconds-now single-float))
+  (let+ ((player-state (player-state game-state))
+         (seconds-since-last-fired (- seconds-now
+                                      (-> game-state player-state last-time-fired)))
+         (reload-time-left (- +player-reload-time-seconds+
+                              seconds-since-last-fired)))
+    (if (and (fire (requested-player-actions game-state))
+             (<= reload-time-left 0))
+        (let* ((projectile-vector (make-vector2d 0 (-> game-state game-config player-projectile-speed)))
+               (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
+          (vector-push-extend new-projectile (projectiles game-state))
+          (setf (last-time-fired player-state) seconds-now)))))
 
 (defmethod update! ((game-state game-state)
                     (seconds-now single-float))
   (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
     (move-projectiles! game-state seconds-since-last-update)
-    (player-fire! game-state seconds-since-last-update)
+    (player-fire! game-state seconds-now)
     (move-player! game-state seconds-since-last-update)
     (setf (last-update-seconds game-state) seconds-now)))
