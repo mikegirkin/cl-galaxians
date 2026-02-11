@@ -39,7 +39,7 @@
 (defun render-player (game-state)
   (let* ((player-state (player-state game-state))
          (player-rect-gfx (-> player-state
-                            as-rectangle
+                            position-rect
                             world-to-gfx))
          (half-player-size (/ +player-width+ 2)))
     (al:draw-scaled-bitmap (sprites-main-ship (sprites game-state))

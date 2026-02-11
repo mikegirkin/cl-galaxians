@@ -16,37 +16,43 @@
       (eql a b)))
 
 (defclass player-state ()
-  ((x :initform 0f0
-      :initarg :x
-      :type float
-      :accessor x)
-   (y :initform 0f0
-      :initarg :y
-      :type float
-      :accessor y)))
+  ((position-rect :type rectangle
+                  :initarg :position-rect
+                  :accessor position-rect)
+   (last-time-fired :type single-float
+                    :initarg :last-time-fired
+                    :accessor last-time-fired)))
 
 (defmethod print-object ((obj player-state) out)
   (with-slots (x y) obj
     (print-unreadable-object (obj out :type t)
       (format out "x:~A y:~A" x y))))
 
-(defun make-player-state (x y)
-  (make-instance 'player-state
-                 :x x
-                 :y y))
+(defun make-player-state (x-center y-center)
+  (let ((new-player-state (make-instance 'player-state
+                                           :position-rect nil
+                                           :last-time-fired nil)))
+    (set-center new-player-state (make-point2d x-center y-center))
+    new-player-state))
 
 (defmethod get-width ((player-state player-state))
   +player-width+)
 
 (defmethod get-center ((player-state player-state))
-  (make-point2d (+ (x player-state) (/ (get-width player-state) 2f0))
-                (+ (y player-state) (/ (get-width player-state) 2f0))))
+  (let+ (((&accessors position-rect) player-state))
+    (make-point2d (/ (+ (left position-rect) (right position-rect)) 2f0)
+                  (/ (+ (top position-rect) (bottom position-rect)) 2f0))))
 
-(defmethod as-rectangle ((player-state player-state))
-  (make-rectangle-by-size (x player-state)
-                          (y player-state)
-                          (get-width player-state)
-                          (get-width player-state)))
+(defmethod set-center ((state player-state)
+                       (new-center point2d))
+  (let+ (((&accessors (x-center point-x)
+                      (y-center point-y)) new-center)
+         (new-position-rect (make-rectangle-by-size (- x-center (/ +player-width+ 2f0))
+                                                    (- y-center (/ +player-width+ 2f0))
+                                                    +player-width+
+                                                    +player-width+)))
+    (setf (position-rect state) new-position-rect)
+    nil))
 
 (defstruct sprites
   main-ship
@@ -121,10 +127,11 @@
   (let* ((movement-vector (mul-scalar (speed-vector projectile) seconds-since-last-update)))
     (move-rect! (position-rect projectile) movement-vector)))
 
-(defun new-player-projectile (player-state speed-vector)
+(defmethod new-player-projectile ((player-state player-state)
+                                  (speed-vector vector2d))
   (let* ((player-center-point (get-center player-state))
          (projectile-x (point-x player-center-point))
-         (projectile-y (top (as-rectangle player-state)))
+         (projectile-y (top (position-rect player-state)))
          (projectile-position-rect (make-rectangle-by-size projectile-x projectile-y 1 3)))
     (mk-projectile-state projectile-position-rect speed-vector t)))
 
@@ -265,9 +272,12 @@
          (right (if (move-right (requested-player-actions game-state)) player-speed 0))
          (total-speed (- right left))
          (dx (* total-speed seconds-since-last-update))
+         (player-center (get-center (player-state game-state)))
          (new-x (limit-by +min-left-pos+ +max-right-pos+
-                          (+ (x (player-state game-state)) dx))))
-    (setf (x (player-state game-state)) new-x)))
+                          (+ (point-x player-center) dx)))
+         (new-center (make-point2d new-x
+                                   (point-y player-center))))
+    (set-center (player-state game-state) new-center)))
 
 (defmethod player-fire! ((game-state game-state)
                          (seconds-since-last-update single-float))

@@ -24,15 +24,6 @@
   (and (= (point-x p1) (point-x p2))
        (= (point-y p1) (point-y p2))))
 
-(defmethod plus ((p point2d)
-                 (v vector2d))
-  (make-point2d (+ (point-x p) (dx v))
-                (+ (point-y p) (dy v))))
-
-(defmethod minus ((p point2d)
-                  (v vector2d))
-  (plus p (neg v)))
-
 (defclass vector2d ()
   ((dx :initform 0f0
        :initarg :dx
@@ -62,6 +53,15 @@
 (defmethod neg ((v vector2d))
   (make-vector2d (- (dx v))
                  (- (dy v))))
+
+(defmethod plus ((p point2d)
+                 (v vector2d))
+  (make-point2d (+ (point-x p) (dx v))
+                (+ (point-y p) (dy v))))
+
+(defmethod minus ((p point2d)
+                  (v vector2d))
+  (plus p (neg v)))
 
 (defclass rectangle ()
   ((x1 :initform 0f0

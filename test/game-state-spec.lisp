@@ -28,7 +28,7 @@
     (is (g::is-player-owned projectile))
     (is (g::vector2d= (g::speed-vector projectile) movement-vector))
     (is (g::rectangle= (g::position-rect projectile)
-                       (g::make-rectangle-by-size 28 36 1 3)))))
+                       (g::make-rectangle-by-size 20 28 1 3)))))
 
 (test player-fires-if-reload-time-passed
   (let* ((game-state (g::make-initial-game-state test-game-config))
@@ -36,7 +36,7 @@
          (_1 (g::player-fire! game-state 10f0))
          (added-projectile (elt (g::projectiles game-state) 0)))
     (is (g::rectangle= (g::position-rect added-projectile)
-                       (g::make-rectangle-by-coords 158 16 159 19)))))
+                       (g::make-rectangle-by-size 150 8 1 3)))))
 
 (test player-cant-fire-when-reloading
   (let* ((game-state (g::make-initial-game-state test-game-config))
@@ -79,7 +79,7 @@
          (projectile (elt (g::projectiles game-state) 0))
          (on-boundary (g::copy (g::position-rect projectile)))
          (_ (g::update! game-state 20f0)))
-    (is (g::rectangle= (g::make-rectangle-by-coords 158 196 159 199)
+    (is (g::rectangle= (g::make-rectangle-by-size 150 188 1 3)
                        on-boundary))
     (is (= (length (g::projectiles game-state)) 0))))
 
