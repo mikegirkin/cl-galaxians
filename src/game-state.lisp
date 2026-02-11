@@ -88,6 +88,11 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
                  :trajectory trajectory
                  :started-at started-at))
 
+(defmethod print-object ((obj movement-descriptor) out)
+  (with-slots (trajectory started-at) obj
+    (print-unreadable-object (obj out :type t)
+      (format out "trajectory:~A started-at:~A" trajectory started-at))))
+
 (deftype enemy-type () '(member :drone :sentry :guardian))
 
 (defclass enemy-ship-state ()
