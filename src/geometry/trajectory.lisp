@@ -53,7 +53,7 @@
                  (* ttt (point-y p3)))))
       (make-point2d x y))))
 
-(defmethod speed_at ((curve cubic-bezier-curve)
+(defmethod speed-at ((curve cubic-bezier-curve)
                       (time single-float))
   "Returns speed vector (derivative) at the bezier curve for time in [0, 1]. Formula: B'(time) = 3(1-t)²(P₁-P₀) + 6(1-t)time(P₂-P₁) + 3t²(P₃-P₂)"
   (with-slots (p0 p1 p2 p3) curve
@@ -115,12 +115,8 @@
                  :direction direction
                  :time time))
 
-(defun spline-vertex (&key p v time)
-  (let+ ((#(px py) p)
-         (#(vx vy) v))
-        (make-trajectory-spline-vertex (make-point2d px py)
-                                       (make-vector2d vx vy)
-                                       time)))
+(defmethod spline-vertex (point direction time)
+  (make-trajectory-spline-vertex point direction time))
 
 (defclass trajectory ()
   ((fragments :initarg :fragments
@@ -182,5 +178,8 @@
 (defgeneric velocity-at (trajectory time)
   (:documentation "Return a vector2d for trajectory at time time."))
 
-
-
+(defmethod time-end ((trajectory trajectory))
+  (let+ (((&accessors fragments) trajectory)
+         (length (length fragments))
+         (last-element (aref fragments (- length 1))))
+    (time-end last-element)))

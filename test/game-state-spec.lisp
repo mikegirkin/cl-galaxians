@@ -1,11 +1,12 @@
 (in-package :galaxians-spec)
 
-(def-suite* game-state-spec)
+(def-suite game-state-spec)
 (in-suite game-state-spec)
 
 (defparameter test-game-config
   (g::make-game-config :player-speed 3
-                       :player-projectile-speed 10))
+                       :player-projectile-speed 10
+                       :initial-wait-between-attacks 30))
 
 (test make-rectangle-by-coords
   (let ((rect (g::make-rectangle-by-coords 10 20 30 40)))
@@ -92,4 +93,33 @@
          (_ (vector-push-extend projectile (g::projectiles game-state)))
          (_ (g::update! game-state 1f0)))
     (is (= 0 (length (g::projectiles game-state))))
-    (is (= (length (g::enemies game-state)) 43))))
+    (is (= 43 (length (-> game-state g::enemies g::enemy-ship-states)) 43))))
+
+
+(def-suite enemy-state-spec)
+(in-suite enemy-state-spec)
+(setf g::+log-level+ :info)
+
+(test picks-next-eligible-enemy
+  (let+ ((game-config (g::make-game-config))
+         (enemies-state (g::make-initial-enemies-state game-config))
+         (random-fn (lambda (_) 0))
+         (picked-attacker-index (g::pick-next-attacker enemies-state game-config random-fn)))
+    (is (= picked-attacker-index 0))))
+
+(test should-start-enemy-movement-is-correct
+  (let+ ((game-state (g::make-initial-game-state test-game-config)))
+    (is-false (g::should-start-enemy-movement? (g::enemies game-state) 29f0))
+    (is-true (g::should-start-enemy-movement? (g::enemies game-state) 33f0))))
+
+(test move-enemies-stops-enemy-movement
+  (let+ ((game-state (g::make-initial-game-state test-game-config))
+         (enemies (g::enemies game-state))
+         (enemy-ship-states (g::enemy-ship-states enemies))
+         (first-enemy-state (elt enemy-ship-states 0))
+         (movement-trajectory (g::attack-trajectory-for-enemy-index enemies 0))
+         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0)))
+
+    (setf (g::movement-descriptor first-enemy-state) movement-descriptor)
+    (g::update! game-state 30f0)
+    (is (null (g::movement-descriptor first-enemy-state)))))

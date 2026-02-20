@@ -8,6 +8,8 @@
                  (:file "geometry/geometry")
                  (:file "geometry/trajectory")
                  (:file "package")
+                 (:file "seq-utils")
+                 (:file "game-config")
                  (:file "game-state")
                  (:file "render")
                  (:file "main")))

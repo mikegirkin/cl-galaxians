@@ -44,13 +44,22 @@
     (is (point2d= (position-at trajectory 10f0)
                   (make-point2d 8 0)))))
 
+(defparameter spline-trajectory (make-spline-trajectory
+                                 (spline-vertex (make-point2d 0f0 0f0)
+                                                (make-vector2d 0f0 1f1)
+                                                0f0)
+                                 (spline-vertex (make-point2d 5f0 0f0)
+                                                (make-vector2d 0f0 -1f0)
+                                                5f0)
+                                 (spline-vertex (make-point2d 10f0 0f0)
+                                                (make-vector2d 1f1 1f1)
+                                                10f0)))
+
 (test make-spline-trajectory
-  (let* ((trajectory (make-spline-trajectory
-                      (spline-vertex :p #(0f0 0f0)
-                                     :v #(0f0 1f1)
-                                     :time 0f0)
-                      (spline-vertex :p #(5f0 0f0)
-                                     :v #(0f0 -1f0)
-                                     :time 5f0))))
-    (is (point2d= (position-at trajectory 2.5f0)
-                  (make-point2d 2.5f0 1.375f0)))))
+  (is (point2d= (position-at spline-trajectory 2.5f0)
+                (make-point2d 2.5f0 1.375f0))))
+
+(test returns-time-end
+  (is (= (time-end spline-trajectory)
+         10f0)))
+

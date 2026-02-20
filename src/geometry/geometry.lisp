@@ -24,6 +24,9 @@
   (and (= (point-x p1) (point-x p2))
        (= (point-y p1) (point-y p2))))
 
+(defmethod as-array ((p point2d))
+  (vector (point-x p) (point-y p)))
+
 (defclass vector2d ()
   ((dx :initform 0f0
        :initarg :dx
@@ -92,6 +95,14 @@
 (defun make-rectangle-by-size (x1 y1 width height)
   (make-rectangle-by-coords x1 y1 (+ x1 width) (+ y1 height)))
 
+(defun make-rectangle-from-center-size (center-point width height)
+  (let+ (((&accessors (xc point-x)
+                      (yc point-y)) center-point))
+    (make-rectangle-by-coords (- xc (/ width 2f0))
+                              (- yc (/ width 2f0))
+                              (+ xc (/ height 2f0))
+                              (+ yc (/ height 2f0)))))
+
 (defmethod rectangle= ((r1 rectangle)
                        (r2 rectangle))
   (and (= (left r1) (left r2))
@@ -140,6 +151,10 @@
 (defmethod bottomleft ((rectangle rectangle))
   (make-point2d (left rectangle)
                 (bottom rectangle)))
+
+(defmethod center ((rectangle rectangle))
+  (make-point2d (/ (+ (left rectangle) (right rectangle)) 2)
+                (/ (+ (top rectangle) (bottom rectangle)) 2)))
 
 (defmethod move-rect! ((rect rectangle)
                        (vector vector2d))

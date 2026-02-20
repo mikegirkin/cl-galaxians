@@ -5,6 +5,7 @@
            #:point2d=
            #:point-x #:point-y
            #:print-object
+           #:as-array
            #:make-point2d
            #:vector2d
            #:dx #:dy
@@ -16,12 +17,14 @@
            #:left #:top #:right #:bottom
            #:make-rectangle-by-coords
            #:make-rectangle-by-size
+           #:make-rectangle-from-center-size
            #:rectangle=
            #:copy
            #:rectangle-width
            #:rectangle-height
            #:topleft
            #:bottomright
+           #:center
            #:move-rect!
            #:has-common-area?
            #:within-rectangle?
@@ -45,4 +48,5 @@
 
            #:spline-vertex
            #:make-spline-trajectory
+           #:time-end
            ))
