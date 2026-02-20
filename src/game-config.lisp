@@ -2,6 +2,17 @@
 
 (defparameter +log-level+ :info)
 
+;; Global game constants
+(defparameter +scale+ 6)
+(defparameter +min-left-pos+ 8)
+(defparameter +max-right-pos+ 200)
+(defparameter +player-reload-time-seconds+ 1f0)
+(defparameter +game-screen-width+ 320)
+(defparameter +game-screen-height+ 200)
+(defparameter +player-width+ 16)
+(defparameter +enemy-ship-size+ 12)
+(defparameter +general-cell-size+ 16)
+
 (defclass game-config ()
   ((player-speed :type integer
                  :initarg :player-speed

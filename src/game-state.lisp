@@ -1,58 +1,9 @@
 (in-package :galaxians)
 
-(defparameter +scale+ 6)
-(defparameter +min-left-pos+ 8)
-(defparameter +max-right-pos+ 200)
-(defparameter +player-reload-time-seconds+ 1f0)
-(defparameter +game-screen-width+ 320)
-(defparameter +game-screen-height+ 200)
-(defparameter +player-width+ 16)
-(defparameter +enemy-ship-size+ 12)
-(defparameter +general-cell-size+ 16)
-
 (defun float-eql (a b &key epsilon)
   (if epsilon
       (< (abs (- a b)) epsilon)
       (eql a b)))
-
-(defclass player-state ()
-  ((position-rect :type rectangle
-                  :initarg :position-rect
-                  :accessor position-rect)
-   (last-time-fired :type single-float
-                    :initarg :last-time-fired
-                    :accessor last-time-fired)))
-
-(defmethod print-object ((obj player-state) out)
-  (with-slots (position-rect last-time-fired) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "position:~A last-fired:~A" position-rect last-time-fired))))
-
-(defun make-player-state (x-center y-center)
-  (let ((new-player-state (make-instance 'player-state
-                                         :position-rect nil
-                                         :last-time-fired -10f0)))
-    (set-center new-player-state (make-point2d x-center y-center))
-    new-player-state))
-
-(defmethod get-width ((player-state player-state))
-  +player-width+)
-
-(defmethod get-center ((player-state player-state))
-  (let+ (((&accessors position-rect) player-state))
-    (make-point2d (/ (+ (left position-rect) (right position-rect)) 2f0)
-                  (/ (+ (top position-rect) (bottom position-rect)) 2f0))))
-
-(defmethod set-center ((state player-state)
-                       (new-center point2d))
-  (let+ (((&accessors (x-center point-x)
-                      (y-center point-y)) new-center)
-         (new-position-rect (make-rectangle-by-size (- x-center (/ +player-width+ 2f0))
-                                                    (- y-center (/ +player-width+ 2f0))
-                                                    +player-width+
-                                                    +player-width+)))
-    (setf (position-rect state) new-position-rect)
-    nil))
 
 (defstruct sprites
   main-ship
@@ -64,18 +15,6 @@
   ((sprites :initform nil :accessor sprites)
    (delay :initform nil :accessor delay) ;Time delay between switching
    ))
-
-(defclass requested-player-actions ()
-  ((move-up :initform nil :accessor move-up)
-   (move-down :initform nil :accessor move-down)
-   (move-left :initform nil :accessor move-left)
-   (move-right :initform nil :accessor move-right)
-   (fire :initform nil :accessor fire)))
-
-(defmethod print-object ((obj requested-player-actions) out)
-  (with-slots (move-left move-right fire) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "move-left:~A move-right:~A fire:~A" move-left move-right fire))))
 
 (defclass movement-descriptor ()
   ((trajectory :type trajectory
@@ -96,129 +35,6 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
   (with-slots (trajectory started-at) obj
     (print-unreadable-object (obj out :type t)
       (format out "trajectory:~A started-at:~A" trajectory started-at))))
-
-(defparameter +enemy-types+ '(:drone :sentry :guardian))
-(deftype enemy-type () `(member ,@+enemy-types+))
-(defun enemy-type-members ()
-  +enemy-types+)
-
-(defclass enemy-ship-state ()
-  ((position-rect :initarg :position-rect
-                  :type rectangle
-                  :accessor position-rect)
-   (ship-type :initarg :ship-type
-              :type enemy-type
-              :accessor ship-type)
-   (movement-descriptor :initarg :movement-descriptor
-                        :initform nil
-                        :type enemy-movement-state
-                        :accessor movement-descriptor)))
-
-(defun make-enemy-ship-state (position ship-type)
-  (make-instance 'enemy-ship-state
-                 :position-rect position
-                 :ship-type ship-type
-                 :movement-descriptor nil))
-
-(defun make-enemy-ship-state-from-row-col (row col ship-type)
-  (make-enemy-ship-state (make-rectangle-by-size
-                          (* (+ col 1) +general-cell-size+)
-                          (+ (* row +general-cell-size+) 116)
-                          +enemy-ship-size+
-                          +enemy-ship-size+)
-                         ship-type))
-
-(defmethod print-object ((obj enemy-ship-state) out)
-  (with-slots (position-rect ship-type) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "position:~A type:~A" position-rect ship-type))))
-
-(defclass enemies-state ()
-  ((enemy-ship-states :type (vector enemy-ship-state)
-                      :initarg :enemies
-                      :accessor enemy-ship-states)
-   (attacks-completed-count :type integer
-                            :initarg :attacks-completed-count
-                            :accessor attacks-completed-count)
-   (last-attack-started-at :type single-float
-                           :initarg :last-attack-started-at
-                           :accessor last-attack-started-at)
-   (wait-between-attacks :type single-float
-                         :initarg :wait-between-attacks
-                         :accessor wait-between-attacks)))
-
-(defun make-enemies-state (game-config enemy-ships-state)
-  (make-instance 'enemies-state
-                 :enemies enemy-ships-state
-                 :attacks-completed-count 0
-                 :last-attack-started-at 0f0
-                 :wait-between-attacks (-> game-config initial-wait-between-attacks)))
-
-(defun make-initial-enemies-state (game-config)
-  (let+ ((enemy-ships
-          (append
-           (loop :for col :from 0 :to 9
-                 :append (loop
-                           :for row :from 0 :to 2
-                           :collect (make-enemy-ship-state-from-row-col row col :drone)))
-           (loop :for col :from 1 :to 8
-                 :with row := 3
-                 :collect (make-enemy-ship-state-from-row-col row col :sentry))
-           (loop :for col :from 2 :to 7
-                 :with row := 4
-                 :collect (make-enemy-ship-state-from-row-col row col :guardian))))
-         (enemy-ships-vector (coerce enemy-ships 'vector)))
-    (make-enemies-state game-config enemy-ships-vector)))
-
-(defmethod pick-next-attacker ((enemies-state enemies-state)
-                               (game-config game-config)
-                               random-fn)
-  "Picks next enemy ship to execute attack on the player. Returns enemy index.
-   random-fn - 1 arg function, takes max number to return"
-  (let+ (((&accessors attacks-completed-count enemy-ship-states) enemies-state)
-         (progression-index (position-if (lambda (x) (>= x attacks-completed-count))
-                                         (attack-progression game-config)))
-         (allowed-types (subseq +enemy-types+ 0 (+ progression-index 1)))
-         (allowed-indices (all-positions-if (lambda (enemy) (and (member (ship-type enemy)
-                                                                         allowed-types)
-                                                                 (null (movement-descriptor enemy))))
-                                            enemy-ship-states)))
-    (funcall random-fn (length allowed-indices))))
-
-(defclass projectile-state ()
-  ((position-rect :initarg :rect
-                  :type rectangle
-                  :accessor position-rect)
-   (speed-vector :initarg :speed-vector
-                 :type vector2d
-                 :accessor speed-vector)
-   (is-player-owned :initarg :is-player-owned
-                    :type boolean
-                    :accessor is-player-owned)))
-
-(defun mk-projectile-state (position-rect speed-vector is-player-owned)
-  (make-instance 'projectile-state
-                 :rect position-rect
-                 :speed-vector speed-vector
-                 :is-player-owned is-player-owned))
-
-(defmethod print-object ((obj projectile-state) out)
-  (with-slots (position-rect speed-vector is-player-owned) obj
-    (print-unreadable-object (obj out :type t)
-      (format out "position-rect:~A speed-vector:~A is-player-owned:~A" position-rect speed-vector is-player-owned))))
-
-(defmethod move! ((projectile projectile-state)
-                  (seconds-since-last-update single-float))
-  (let* ((movement-vector (mul-scalar (speed-vector projectile) seconds-since-last-update)))
-    (move-rect! (position-rect projectile) movement-vector)))
-
-(defmethod new-player-projectile ((player-state player-state)
-                                  (speed-vector vector2d))
-  (let* ((player-center-point (get-center player-state))
-         (projectile-x (point-x player-center-point))
-         (projectile-y (top (position-rect player-state)))
-         (projectile-position-rect (make-rectangle-by-size projectile-x projectile-y 1 3)))
-    (mk-projectile-state projectile-position-rect speed-vector t)))
 
 (defclass game-state ()
   ((player-state :initarg :player-state
@@ -343,50 +159,6 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
                (new-projectile (new-player-projectile (player-state game-state) projectile-vector)))
           (vector-push-extend new-projectile (projectiles game-state))
           (setf (last-time-fired player-state) seconds-now)))))
-
-(defmethod attack-trajectory-for-enemy-index ((enemies-state enemies-state)
-                                              enemy-index)
-  (let+ (((&accessors enemy-ship-states) enemies-state)
-         (enemy (elt enemy-ship-states enemy-index))
-         ((&accessors position-rect) enemy)
-         (initial-point (-> position-rect center)))
-    (make-spline-trajectory (spline-vertex initial-point
-                                           (make-vector2d 0 1)
-                                           0f0)
-                            (spline-vertex (make-point2d 20 (- +game-screen-height+ 20f0))
-                                           (make-vector2d 0 -20)
-                                           1f0)
-                            (spline-vertex (make-point2d (/ +game-screen-width+ 2f0)
-                                                         (/ +game-screen-height+ 2f0))
-                                           (make-vector2d 20 0)
-                                           4f0)
-                            (spline-vertex (make-point2d (- +game-screen-width+ -20f0)
-                                                         (- +game-screen-height+ 20f0))
-                                           (make-vector2d 0 20)
-                                           7f0)
-                            (spline-vertex initial-point
-                                           (make-vector2d 0 1)
-                                           8f0))))
-
-(defmethod should-start-enemy-movement? ((enemies-state enemies-state)
-                                         (seconds-now single-float))
-  (let+ (((&accessors last-attack-started-at wait-between-attacks) enemies-state)
-         (time-since-last-movement (- seconds-now last-attack-started-at)))
-    (>= time-since-last-movement wait-between-attacks)))
-
-(defmethod start-enemy-movement! ((game-config game-config)
-                                  (enemies-state enemies-state)
-                                  (seconds-now single-float))
-  ;decide what enemy is going to move
-  (let+ ((random-fn (lambda (x) (random x)))
-         (enemy-index (pick-next-attacker enemies-state game-config random-fn))
-         ((&accessors enemy-ship-states) enemies-state)
-         (enemy (elt enemy-ship-states enemy-index))
-         (trajectory (attack-trajectory-for-enemy-index enemies-state enemy-index))
-         (attack-movement-descriptor (make-movement-descriptor trajectory
-                                                               seconds-now)))
-    (setf (movement-descriptor enemy) attack-movement-descriptor)
-    (setf (last-attack-started-at enemies-state) seconds-now)))
 
 (defmethod move-enemies! ((game-state game-state)
                           (seconds-now single-float))
