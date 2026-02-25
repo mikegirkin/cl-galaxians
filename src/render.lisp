@@ -39,7 +39,7 @@
 (defun render-player (game-state)
   (let* ((player-state (player-state game-state))
          (player-rect-gfx (-> player-state
-                            as-rectangle
+                            position-rect
                             world-to-gfx))
          (half-player-size (/ +player-width+ 2)))
     (al:draw-scaled-bitmap (sprites-main-ship (sprites game-state))
@@ -59,7 +59,8 @@
       (:guardian (sprites-guardian-ship sprites)))))
 
 (defun render-enemies (game-state)
-  (loop :for enemy-ship :across (enemies game-state)
+  (loop :with enemies-state = (enemies game-state)
+        :for enemy-ship :across (enemy-ship-states enemies-state)
         :for sprite = (enemy-sprite-for (ship-type enemy-ship) game-state)
         :for enemy-ship-rect-gfx = (world-to-gfx (position-rect enemy-ship))
         :do (al:draw-scaled-bitmap sprite

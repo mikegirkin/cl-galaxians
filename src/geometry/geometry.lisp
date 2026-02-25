@@ -1,39 +1,13 @@
-(defpackage :geometry
-  (:use :cl :binding-arrows :let-plus)
-  (:export #:point2d
-           #:point-x #:point-y
-           #:print-object
-           #:make-point2d
-           #:vector2d
-           #:dx #:dy
-           #:make-vector2d
-           #:vector2d=
-           #:mul-scalar
-           #:rectangle
-           #:x1 #:y1 #:x2 #:y2
-           #:left #:top #:right #:bottom
-           #:make-rectangle-by-coords
-           #:make-rectangle-by-size
-           #:rectangle=
-           #:copy
-           #:rectangle-width
-           #:rectangle-height
-           #:topleft
-           #:bottomright
-           #:move-rect!
-           #:has-common-area?
-           #:within-rectangle?))
-
 (in-package :geometry)
 
 (defclass point2d ()
   ((x :initform 0f0
       :initarg :x
-      :type float
+      :type single-float
       :accessor point-x)
    (y :initform 0f0
       :initarg :y
-      :type float
+      :type single-float
       :accessor point-y)))
 
 (defmethod print-object ((obj point2d) out)
@@ -45,14 +19,22 @@
   (make-instance 'point2d :x x
                           :y y))
 
+(defmethod point2d= ((p1 point2d)
+                     (p2 point2d))
+  (and (= (point-x p1) (point-x p2))
+       (= (point-y p1) (point-y p2))))
+
+(defmethod as-array ((p point2d))
+  (vector (point-x p) (point-y p)))
+
 (defclass vector2d ()
   ((dx :initform 0f0
        :initarg :dx
-       :type float
+       :type single-float
        :accessor dx)
    (dy :initform 0f0
        :initarg :dy
-       :type float
+       :type single-float
        :accessor dy)))
 
 (defmethod print-object ((obj vector2d) out)
@@ -71,17 +53,30 @@
   (make-vector2d (* (dx vector) scalar)
                  (* (dy vector) scalar)))
 
+(defmethod neg ((v vector2d))
+  (make-vector2d (- (dx v))
+                 (- (dy v))))
+
+(defmethod plus ((p point2d)
+                 (v vector2d))
+  (make-point2d (+ (point-x p) (dx v))
+                (+ (point-y p) (dy v))))
+
+(defmethod minus ((p point2d)
+                  (v vector2d))
+  (plus p (neg v)))
+
 (defclass rectangle ()
-  ((x1 :initform 0d0
+  ((x1 :initform 0f0
        :initarg :x1
        :accessor x1)
-   (y1 :initform 0d0
+   (y1 :initform 0f0
        :initarg :y1
        :accessor y1)
-   (x2 :initform 0d0
+   (x2 :initform 0f0
        :initarg :x2
        :accessor x2)
-   (y2 :initform 0d0
+   (y2 :initform 0f0
        :initarg :y2
        :accessor y2)))
 
@@ -100,12 +95,20 @@
 (defun make-rectangle-by-size (x1 y1 width height)
   (make-rectangle-by-coords x1 y1 (+ x1 width) (+ y1 height)))
 
+(defun make-rectangle-from-center-size (center-point width height)
+  (let+ (((&accessors (xc point-x)
+                      (yc point-y)) center-point))
+    (make-rectangle-by-coords (- xc (/ width 2f0))
+                              (- yc (/ width 2f0))
+                              (+ xc (/ height 2f0))
+                              (+ yc (/ height 2f0)))))
+
 (defmethod rectangle= ((r1 rectangle)
                        (r2 rectangle))
-  (and (= (x1 r1) (x1 r2))
-       (= (y1 r1) (y1 r2))
-       (= (x2 r1) (x2 r2))
-       (= (y2 r1) (y2 r2))))
+  (and (= (left r1) (left r2))
+       (= (right r1) (right r2))
+       (= (top r1) (top r2))
+       (= (bottom r1) (bottom r2))))
 
 (defmethod copy ((rect rectangle))
   (make-rectangle-by-coords (x1 rect)
@@ -114,12 +117,12 @@
                             (y2 rect)))
 
 (defmethod rectangle-width ((rectangle rectangle))
-  (abs (- (x1 rectangle)
-          (x2 rectangle))))
+  (- (right rectangle)
+     (left rectangle)))
 
 (defmethod rectangle-height ((rectangle rectangle))
-  (abs (- (y1 rectangle)
-          (y2 rectangle))))
+  (- (top rectangle)
+     (bottom rectangle)))
 
 (defmethod top ((rectangle rectangle))
   (max (y1 rectangle) (y2 rectangle)))
@@ -148,6 +151,10 @@
 (defmethod bottomleft ((rectangle rectangle))
   (make-point2d (left rectangle)
                 (bottom rectangle)))
+
+(defmethod center ((rectangle rectangle))
+  (make-point2d (/ (+ (left rectangle) (right rectangle)) 2)
+                (/ (+ (top rectangle) (bottom rectangle)) 2)))
 
 (defmethod move-rect! ((rect rectangle)
                        (vector vector2d))
@@ -189,4 +196,3 @@
      (<= x rect-right)
      (>= y rect-bottom)
      (<= y rect-top))))
-
