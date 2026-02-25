@@ -75,13 +75,13 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
 (defun make-initial-game-state (game-config)
   (make-instance 'game-state
                  :game-config game-config
-                 :player-state (make-player-state 150 0)
+                 :player-state (make-player-state 142 8)
                  :enemies (make-initial-enemies-state game-config)))
 
 (defmethod initialize-enemies! ((game-state game-state))
   (let+ (((&accessors game-config) game-state)
          (enemies (make-initial-enemies-state game-config)))
-    (setf (enemies game-state) (coerce enemies 'vector))))
+    (setf (enemies game-state) enemies)))
 
 (defun limit-by (min-value max-value value)
   (min max-value
@@ -139,7 +139,10 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
          (total-speed (- right left))
          (dx (* total-speed seconds-since-last-update))
          (player-center (get-center (player-state game-state)))
-         (new-x (limit-by +min-left-pos+ +max-right-pos+
+         (min-left-pos (-> game-state game-config gamefield-rect left))
+         (max-right-pos (-> game-state game-config gamefield-rect right))
+         (new-x (limit-by min-left-pos
+                          max-right-pos
                           (+ (point-x player-center) dx)))
          (new-center (make-point2d new-x
                                    (point-y player-center))))

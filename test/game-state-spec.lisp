@@ -37,7 +37,7 @@
          (_1 (g::player-fire! game-state 10f0))
          (added-projectile (elt (g::projectiles game-state) 0)))
     (is (g::rectangle= (g::position-rect added-projectile)
-                       (g::make-rectangle-by-size 150 8 1 3)))))
+                       (g::make-rectangle-by-size 142 16 1 3)))))
 
 (test player-cant-fire-when-reloading
   (let* ((game-state (g::make-initial-game-state test-game-config))
@@ -80,7 +80,7 @@
          (projectile (elt (g::projectiles game-state) 0))
          (on-boundary (g::copy (g::position-rect projectile)))
          (_ (g::update! game-state 20f0)))
-    (is (g::rectangle= (g::make-rectangle-by-size 150 188 1 3)
+    (is (g::rectangle= (g::make-rectangle-by-size 142 196 1 3)
                        on-boundary))
     (is (= (length (g::projectiles game-state)) 0))))
 
@@ -117,7 +117,7 @@
          (enemies (g::enemies game-state))
          (enemy-ship-states (g::enemy-ship-states enemies))
          (first-enemy-state (elt enemy-ship-states 0))
-         (movement-trajectory (g::attack-trajectory-for-enemy-index enemies 0))
+         (movement-trajectory (g::attack-trajectory-for-enemy-index test-game-config enemies 0))
          (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0)))
 
     (setf (g::movement-descriptor first-enemy-state) movement-descriptor)

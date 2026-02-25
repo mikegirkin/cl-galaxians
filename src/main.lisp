@@ -84,7 +84,7 @@
                      :do (let ((timer (al:get-time)))
                            (process-event-queue event-queue game-state)
                            (unless (paused game-state)
-                             (update! game-state timer))
+                             (update! game-state (coerce timer 'single-float)))
                            (render game-state)))))
         (shutdown display event-queue))))
   0)

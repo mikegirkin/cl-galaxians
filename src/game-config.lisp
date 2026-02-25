@@ -4,8 +4,6 @@
 
 ;; Global game constants
 (defparameter +scale+ 6)
-(defparameter +min-left-pos+ 8)
-(defparameter +max-right-pos+ 200)
 (defparameter +player-reload-time-seconds+ 1f0)
 (defparameter +game-screen-width+ 320)
 (defparameter +game-screen-height+ 200)
@@ -17,6 +15,9 @@
   ((player-speed :type integer
                  :initarg :player-speed
                  :reader player-speed)
+   (gamefield-rect :type rectangle
+                   :reader gamefield-rect
+                   :initarg :gamefield-rect)
    (player-projectile-speed :type integer
                             :initarg :player-projectile-speed
                             :reader player-projectile-speed)
@@ -28,11 +29,13 @@
                        :reader attack-progression)))
 
 (defun make-game-config (&key (player-speed 3)
+                           (gamefield-rect (make-rectangle-by-size 0 0 200 192))
                            (player-projectile-speed 50)
-                           (initial-wait-between-attacks 30)
+                           (initial-wait-between-attacks 3)
                            (attack-progression (list 2 4)))
   (make-instance 'game-config
                  :player-speed player-speed
+                 :gamefield-rect gamefield-rect
                  :player-projectile-speed player-projectile-speed
                  :initial-wait-between-attacks initial-wait-between-attacks
                  :attack-progression attack-progression))
