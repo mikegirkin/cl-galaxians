@@ -178,6 +178,19 @@
 (defgeneric velocity-at (trajectory time)
   (:documentation "Return a vector2d for trajectory at time time."))
 
+(defmethod velocity-at ((fragment trajectory-fragment) (time single-float))
+  (with-slots (time-start time-end) fragment
+    (let* ((fragment-duration (- time-end time-start))
+           (relative-time (/ (- time time-start) fragment-duration)))
+      (speed-at (curve fragment) relative-time))))
+
+(defmethod velocity-at ((trajectory trajectory) (time single-float))
+  (loop :for fragment :across (fragments trajectory)
+        :when (and (>= time (time-start fragment))
+                   (<= time (time-end fragment)))
+          :return (velocity-at fragment time)
+        :finally (return nil)))
+
 (defmethod time-end ((trajectory trajectory))
   (let+ (((&accessors fragments) trajectory)
          (length (length fragments))

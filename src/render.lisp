@@ -11,7 +11,7 @@
 (defun load-bitmap (path)
   (let ((bitmap (al:load-bitmap (asset path))))
     (unless bitmap
-      (error (format t "Error loading ~a" path)))
+      (error "Error loading ~a" path))
     bitmap))
 
 (defmethod load-sprites! (game-state)
@@ -63,14 +63,16 @@
         :for enemy-ship :across (enemy-ship-states enemies-state)
         :for sprite = (enemy-sprite-for (ship-type enemy-ship) game-state)
         :for enemy-ship-rect-gfx = (world-to-gfx (position-rect enemy-ship))
-        :do (al:draw-scaled-bitmap sprite
-                                   0 0
-                                   32 32
-                                   (left enemy-ship-rect-gfx)
-                                   (bottom enemy-ship-rect-gfx) ;GFX Y coords are opposite way!
-                                   (rectangle-width enemy-ship-rect-gfx)
-                                   (rectangle-height enemy-ship-rect-gfx)
-                                   nil)))
+        :do (let* ((cx-gfx (/ (+ (left enemy-ship-rect-gfx) (right enemy-ship-rect-gfx)) 2f0))
+                   (cy-gfx (/ (+ (top enemy-ship-rect-gfx) (bottom enemy-ship-rect-gfx)) 2f0))
+                   (scale-x (/ (rectangle-width enemy-ship-rect-gfx) 32f0))
+                   (scale-y (/ (rectangle-height enemy-ship-rect-gfx) 32f0)))
+               (al:draw-scaled-rotated-bitmap sprite
+                                              16f0 16f0
+                                              cx-gfx cy-gfx
+                                              scale-x scale-y
+                                              (rotation-angle enemy-ship)
+                                              nil))))
 
 (defun render-projectiles (game-state)
   (loop :for projectile :across (projectiles game-state)

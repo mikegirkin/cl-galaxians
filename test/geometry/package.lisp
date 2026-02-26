@@ -2,8 +2,7 @@
   (:use :cl
         :fiveam
         :binding-arrows
-        :geometry
-        :galaxians)
+        :geometry)
   (:import-from :let-plus
                 #:let+)
   (:local-nicknames (:a :alexandria)))
