@@ -144,7 +144,7 @@
     ;; so a small epsilon is needed.
     (g::update! game-state 2f0)
     (is (g::float-eql (g::rotation-angle first-enemy)
-                      (/ pi -2f0)
+                      (/ pi 2f0)
                       :epsilon 1f-4))))
 
 (defun make-enemies-state-with-single-enemy-at (x y game-config)

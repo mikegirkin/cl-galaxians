@@ -30,10 +30,10 @@ make test
 - [x] projectile rendering
 - [x] enemy movement
 - [x] enemy rotation on movement
-- [ ] enemies should move to the closest boundary when flying from the initial point
+- [x] enemies should move to the closest boundary when flying from the initial point
+- [ ] enemy firing
 - [ ] enemies should move at relatively similar speeds when initiate attack and when returning from it
 - [ ] enemy blowup rendering
-- [ ] enemy firing
 - [ ] define different trajectories for different enemy types
 - [ ] lives count and display
 - [ ] score count and display

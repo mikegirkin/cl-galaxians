@@ -25,20 +25,25 @@
                                  :initarg :initial-wait-between-attacks
                                  :reader initial-wait-between-attacks)
    (attack-progression :type list ;; List of integers, defines after which number of attacks the game will progress to the next enemy type
-                       :initarg :attack-progression
-                       :reader attack-progression)))
+                        :initarg :attack-progression
+                        :reader attack-progression)
+   (enemy-projectile-speed :type single-float
+                            :initarg :enemy-projectile-speed
+                            :reader enemy-projectile-speed)))
 
 (defun make-game-config (&key (player-speed 3)
                            (gamefield-rect (make-rectangle-by-size 0 0 200 192))
                            (player-projectile-speed 50)
                            (initial-wait-between-attacks 3)
-                           (attack-progression (list 2 4)))
+                           (attack-progression (list 2 4))
+                           (enemy-projectile-speed 40f0))
   (make-instance 'game-config
                  :player-speed player-speed
                  :gamefield-rect gamefield-rect
                  :player-projectile-speed player-projectile-speed
                  :initial-wait-between-attacks initial-wait-between-attacks
-                 :attack-progression attack-progression))
+                 :attack-progression attack-progression
+                 :enemy-projectile-speed enemy-projectile-speed))
 
 (defun log-debug (line)
   (if (eq +log-level+ :debug)
