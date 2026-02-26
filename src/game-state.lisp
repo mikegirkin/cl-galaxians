@@ -22,7 +22,13 @@
                :accessor trajectory)
    (started-at :type single-float
                :initarg :started-at
-               :accessor started-at)))
+               :accessor started-at)
+   (fire-at :type single-float
+            :initarg :fire-at
+            :accessor fire-at)
+   (has-fired? :type boolean
+               :initform nil
+               :accessor has-fired?)))
 
 (defun make-movement-descriptor (trajectory started-at)
   "Create a movement-descriptor instance holding TRAJECTORY and STARTED-AT.
