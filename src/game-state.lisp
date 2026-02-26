@@ -172,22 +172,27 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
         :do
            (let+ (((&accessors trajectory started-at) md)
                   (trajectory-end-time (time-end trajectory)))
-             (if (>= seconds-now
-                     (+ started-at trajectory-end-time))
-                 (setf (movement-descriptor enemy) nil)
+                  (if (>= seconds-now
+                      (+ started-at trajectory-end-time))
+                  (progn
+                    (setf (movement-descriptor enemy) nil)
+                    (setf (rotation-angle enemy) 0f0))
                  (incf (attacks-completed-count (enemies game-state)) ))))
   ;; Move existing enemies
   (loop :for enemy :across (-> game-state enemies enemy-ship-states)
         :as md := (movement-descriptor enemy)
         :when md
         :do
-           (let+ ((old-position (position-rect enemy))
-                  ((&accessors trajectory started-at) md)
-                  (new-center (position-at trajectory (- seconds-now started-at)))
+           (let* ((old-position (position-rect enemy))
+                  (relative-time (- seconds-now (started-at md)))
+                  (new-center (position-at (trajectory md) relative-time))
+                  (vel (velocity-at (trajectory md) relative-time))
                   (new-position (make-rectangle-from-center-size new-center
                                                                  (rectangle-width old-position)
                                                                  (rectangle-height old-position))))
-             (setf (position-rect enemy) new-position)))
+              (setf (position-rect enemy) new-position)
+              (setf (rotation-angle enemy)
+                    (atan (dx vel) (dy vel)))))
   ;; If time for next attack came - start it
   (if (should-start-enemy-movement? (enemies game-state) seconds-now)
       (start-enemy-movement! (game-config game-state)

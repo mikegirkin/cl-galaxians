@@ -16,9 +16,12 @@
               :type enemy-type
               :accessor ship-type)
    (movement-descriptor :initarg :movement-descriptor
-                        :initform nil
-                        :type enemy-movement-state
-                        :accessor movement-descriptor)))
+                         :initform nil
+                         :type enemy-movement-state
+                         :accessor movement-descriptor)
+   (rotation-angle :initform 0f0
+                   :type single-float
+                   :accessor rotation-angle)))
 
 (defun make-enemy-ship-state (position ship-type)
   (make-instance 'enemy-ship-state
@@ -89,8 +92,9 @@
          (allowed-indices (all-positions-if (lambda (enemy) (and (member (ship-type enemy)
                                                                          allowed-types)
                                                                  (null (movement-descriptor enemy))))
-                                            enemy-ship-states)))
-    (funcall random-fn (length allowed-indices))))
+                                            enemy-ship-states))
+         (picked-number (funcall random-fn (length allowed-indices))))
+    (elt allowed-indices picked-number)))
 
 (defmethod attack-trajectory-for-enemy-index ((game-config game-config)
                                               (enemies-state enemies-state)
@@ -103,25 +107,30 @@
                       (field-top top)
                       (field-right right)
                       (field-bottom bottom)
-                      (field-width rectangle-width)
-                      (field-height rectangle-height)) gamefield-rect)
-         (initial-point (-> position-rect center)))
+                      (field-center-point center)) gamefield-rect)
+         (initial-point (-> position-rect center))
+         (enemy-center-x (point-x initial-point))
+         (field-center-x (point-x field-center-point))
+         (going-left-at-start? (<= enemy-center-x field-center-x))
+         (near-boundary-x (if going-left-at-start? (+ field-left 8f0) (- field-right 8f0)))
+         (far-boundary-x  (if going-left-at-start? (- field-right 8f0) (+ field-left 8f0)))
+         (center-tangent-x (if going-left-at-start? 80f0 -80f0)))
     (make-spline-trajectory (spline-vertex initial-point
-                                           (make-vector2d 0 1)
+                                           (make-vector2d 0 20)
                                            0f0)
-                            (spline-vertex (make-point2d 8 (- field-top 8f0))
+                            (spline-vertex (make-point2d near-boundary-x
+                                                         (- field-top 8f0))
                                            (make-vector2d 0 -20)
                                            0.5f0)
-                            (spline-vertex (make-point2d (/ field-width 2f0)
-                                                         (/ field-height 2f0))
-                                           (make-vector2d 8 0)
+                            (spline-vertex field-center-point
+                                           (make-vector2d center-tangent-x 0)
                                            2f0)
-                            (spline-vertex (make-point2d (- field-right 8f0)
+                            (spline-vertex (make-point2d far-boundary-x
                                                          (- field-top 8f0))
-                                           (make-vector2d 0 8)
+                                           (make-vector2d 0 80)
                                            3.5f0)
                             (spline-vertex initial-point
-                                           (make-vector2d 0 1)
+                                           (make-vector2d 0 20)
                                            4f0))))
 
 (defmethod should-start-enemy-movement? ((enemies-state enemies-state)

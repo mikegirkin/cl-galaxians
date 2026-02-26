@@ -3,7 +3,7 @@
 ## Running
 
 ```sh
-sbcl --load runner.lisp
+make run
 ```
 
 Or start `sbcl` and then
@@ -16,8 +16,7 @@ Or start `sbcl` and then
 
 ## Running tests
 ```cl
-(ql:quickload :galaxians)
-(fiveam:run! 'galaxians-spec::game-state-spec)
+make test
 ```
 
 ## TODOs
@@ -29,18 +28,25 @@ Or start `sbcl` and then
 - [x] use std decart system for geometry, invert only on drawing
 - [x] killing enemies
 - [x] projectile rendering
-- [ ] enemy movement
+- [x] enemy movement
+- [x] enemy rotation on movement
+- [ ] enemies should move to the closest boundary when flying from the initial point
+- [ ] enemies should move at relatively similar speeds when initiate attack and when returning from it
 - [ ] enemy blowup rendering
 - [ ] enemy firing
-- [ ] generalize movement code
+- [ ] define different trajectories for different enemy types
+- [ ] lives count and display
+- [ ] score count and display
 
 ## Assets
 
 PLayer ship: https://foozlecc.itch.io/void-main-ship
+
 Enemy ships: https://opengameart.org/content/spaceships-32x32
 
 ## Links
 
 [Practical common lisp](https://gigamonkeys.com/book/)
+
 [Allegro 5 library docs](https://liballeg.org/a5docs/trunk/)
 

@@ -123,3 +123,58 @@
     (setf (g::movement-descriptor first-enemy-state) movement-descriptor)
     (g::update! game-state 30f0)
     (is (null (g::movement-descriptor first-enemy-state)))))
+
+(test move-enemies-sets-rotation-angle
+  (let+ ((game-state (g::make-initial-game-state test-game-config))
+         (enemies (g::enemies game-state))
+         (enemy-ship-states (g::enemy-ship-states enemies))
+         (first-enemy (elt enemy-ship-states 0))
+         (movement-trajectory (g::attack-trajectory-for-enemy-index test-game-config enemies 0))
+         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0)))
+
+    ;; Slot default is 0 before any movement
+    (is (g::float-eql (g::rotation-angle first-enemy) 0f0))
+
+    (setf (g::movement-descriptor first-enemy) movement-descriptor)
+
+    ;; At t=2.0 the trajectory tangent is purely leftward (dx≈-8, dy=0) because
+    ;; enemy 0 is on the left side of the field and attacks toward the left boundary.
+    ;; Expected angle is atan(dx, dy) = atan(-8, 0) = -pi/2.
+    ;; The 1/3 control-point offsets produce dx=-7.999992 rather than -8.0 exactly,
+    ;; so a small epsilon is needed.
+    (g::update! game-state 2f0)
+    (is (g::float-eql (g::rotation-angle first-enemy)
+                      (/ pi -2f0)
+                      :epsilon 1f-4))))
+
+(defun make-enemies-state-with-single-enemy-at (x y game-config)
+  "Create an enemies-state with one enemy centered at (X, Y)."
+  (let* ((enemy (g::make-enemy-ship-state
+                 (make-rectangle-from-center-size (make-point2d x y)
+                                                  g::+enemy-ship-size+
+                                                  g::+enemy-ship-size+)
+                 :drone))
+         (enemies-vector (make-array 1 :initial-contents (list enemy))))
+    (g::make-enemies-state game-config enemies-vector)))
+
+(test left-side-enemy-attacks-toward-left-boundary
+  ;; Enemy at x=50, gamefield center x=100 => should dive toward left boundary (x=0)
+  (let+ ((game-config (g::make-game-config))
+         (field-left (left (g::gamefield-rect game-config)))
+         (enemies-state (make-enemies-state-with-single-enemy-at 50f0 150f0 game-config))
+         (trajectory (g::attack-trajectory-for-enemy-index game-config enemies-state 0))
+         ;; At t=0.5 the enemy should be near the near boundary waypoint
+         (pos-at-first-waypoint (point-x (position-at trajectory 0.5f0))))
+    (is (< pos-at-first-waypoint (/ (g::rectangle-width (g::gamefield-rect game-config)) 2f0)))
+    (is (g::float-eql pos-at-first-waypoint (+ field-left 8f0) :epsilon 5f0))))
+
+(test right-side-enemy-attacks-toward-right-boundary
+  ;; Enemy at x=150, gamefield center x=100 => should dive toward right boundary (x=200)
+  (let+ ((game-config (g::make-game-config))
+         (field-right (right (g::gamefield-rect game-config)))
+         (enemies-state (make-enemies-state-with-single-enemy-at 150f0 150f0 game-config))
+         (trajectory (g::attack-trajectory-for-enemy-index game-config enemies-state 0))
+         ;; At t=0.5 the enemy should be near the near boundary waypoint
+         (pos-at-first-waypoint (point-x (position-at trajectory 0.5f0))))
+    (is (> pos-at-first-waypoint (/ (g::rectangle-width (g::gamefield-rect game-config)) 2f0)))
+    (is (g::float-eql pos-at-first-waypoint (- field-right 8f0) :epsilon 5f0))))

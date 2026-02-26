@@ -99,8 +99,8 @@
   (let+ (((&accessors (xc point-x)
                       (yc point-y)) center-point))
     (make-rectangle-by-coords (- xc (/ width 2f0))
-                              (- yc (/ width 2f0))
-                              (+ xc (/ height 2f0))
+                              (- yc (/ height 2f0))
+                              (+ xc (/ width 2f0))
                               (+ yc (/ height 2f0)))))
 
 (defmethod rectangle= ((r1 rectangle)
