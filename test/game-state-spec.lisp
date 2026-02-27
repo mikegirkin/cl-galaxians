@@ -118,7 +118,7 @@
          (enemy-ship-states (g::enemy-ship-states enemies))
          (first-enemy-state (elt enemy-ship-states 0))
          (movement-trajectory (g::attack-trajectory-for-enemy-index test-game-config enemies 0))
-         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0)))
+         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0 0f0)))
 
     (setf (g::movement-descriptor first-enemy-state) movement-descriptor)
     (g::update! game-state 30f0)
@@ -130,7 +130,7 @@
          (enemy-ship-states (g::enemy-ship-states enemies))
          (first-enemy (elt enemy-ship-states 0))
          (movement-trajectory (g::attack-trajectory-for-enemy-index test-game-config enemies 0))
-         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0)))
+         (movement-descriptor (g::make-movement-descriptor movement-trajectory 0f0 0f0)))
 
     ;; Slot default is 0 before any movement
     (is (g::float-eql (g::rotation-angle first-enemy) 0f0))
@@ -156,6 +156,47 @@
                  :drone))
          (enemies-vector (make-array 1 :initial-contents (list enemy))))
     (g::make-enemies-state game-config enemies-vector)))
+
+(defun make-game-state-with-attacking-enemy (fire-at)
+  "Create a game-state with the first enemy already on an attack trajectory.
+FIRE-AT is the relative trajectory time at which the enemy should fire."
+  (let* ((game-state (g::make-initial-game-state test-game-config))
+         (enemies (g::enemies game-state))
+         (first-enemy (elt (g::enemy-ship-states enemies) 0))
+         (trajectory (g::attack-trajectory-for-enemy-index test-game-config enemies 0))
+         (md (g::make-movement-descriptor trajectory 0f0 fire-at)))
+    (setf (g::movement-descriptor first-enemy) md)
+    game-state))
+
+(test enemy-fires-during-attack
+  ;; fire-at=0.1 means the enemy should fire once relative-time passes 0.1
+  (let* ((game-state (make-game-state-with-attacking-enemy 0.1f0))
+         (_ (g::update! game-state 1f0))
+         (enemy-projectiles (remove-if #'g::is-player-owned
+                                       (coerce (g::projectiles game-state) 'list))))
+    (is (= 1 (length enemy-projectiles)))))
+
+(test enemy-fires-only-once
+  ;; Even after multiple updates, only one enemy projectile should exist
+  (let* ((game-state (make-game-state-with-attacking-enemy 0.1f0))
+         (_ (g::update! game-state 1f0))
+         (_ (g::update! game-state 2f0))
+         (enemy-projectiles (remove-if #'g::is-player-owned
+                                       (coerce (g::projectiles game-state) 'list))))
+    (is (= 1 (length enemy-projectiles)))))
+
+(test enemy-projectile-kills-player
+  ;; Place an enemy projectile directly on the player and verify game-over is set.
+  ;; Use seconds-now=0 so move-projectiles! applies zero displacement before the hit check.
+  (let* ((game-state (g::make-initial-game-state test-game-config))
+         (player-center (g::get-center (g::player-state game-state)))
+         (projectile (g::mk-projectile-state
+                      (make-rectangle-from-center-size player-center 1 3)
+                      (make-vector2d 0f0 -10f0)
+                      nil))
+         (_ (vector-push-extend projectile (g::projectiles game-state)))
+         (_ (g::update! game-state 0f0)))
+    (is-true (g::game-over game-state))))
 
 (test left-side-enemy-attacks-toward-left-boundary
   ;; Enemy at x=50, gamefield center x=100 => should dive toward left boundary (x=0)

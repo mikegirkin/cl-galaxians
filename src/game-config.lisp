@@ -32,8 +32,8 @@
                             :reader enemy-projectile-speed)))
 
 (defun make-game-config (&key (player-speed 3)
-                           (gamefield-rect (make-rectangle-by-size 0 0 200 192))
                            (player-projectile-speed 50)
+                           (gamefield-rect (make-rectangle-by-size 0 0 200 192))
                            (initial-wait-between-attacks 3)
                            (attack-progression (list 2 4))
                            (enemy-projectile-speed 40f0))

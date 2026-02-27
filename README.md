@@ -31,7 +31,11 @@ make test
 - [x] enemy movement
 - [x] enemy rotation on movement
 - [x] enemies should move to the closest boundary when flying from the initial point
-- [ ] enemy firing
+- [x] enemy firing
+- [ ] player speed from the config is not respected
+- [ ] remove hardcoded timings for firing
+- [ ] change projectiles to squares
+- [ ] make enemy projectiles of square shape
 - [ ] enemies should move at relatively similar speeds when initiate attack and when returning from it
 - [ ] enemy blowup rendering
 - [ ] define different trajectories for different enemy types
