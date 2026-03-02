@@ -26,3 +26,11 @@
                   (seconds-since-last-update single-float))
   (let* ((movement-vector (mul-scalar (speed-vector projectile) seconds-since-last-update)))
     (move-rect! (position-rect projectile) movement-vector)))
+
+(defun new-enemy-projectile (enemy-position-rect speed-vector)
+  "Create a 1x3 enemy projectile at the bottom center of ENEMY-POSITION-RECT,
+traveling in the direction of SPEED-VECTOR."
+  (let* ((cx (/ (+ (left enemy-position-rect) (right enemy-position-rect)) 2f0))
+         (y  (bottom enemy-position-rect))
+         (position-rect (make-rectangle-by-size cx y 1 3)))
+    (mk-projectile-state position-rect speed-vector nil)))

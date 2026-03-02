@@ -54,7 +54,7 @@
     (al:set-new-display-option :vsync 0 :require)
     (let* ((display (al:create-display +window-width+ +window-height+))
            (event-queue (al:create-event-queue))
-           (game-config (make-game-config :player-speed 30
+           (game-config (make-game-config :player-speed 50
                                           :player-projectile-speed 50))
            (game-state (make-initial-game-state game-config)))
       (when (cffi:null-pointer-p display)

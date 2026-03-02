@@ -22,14 +22,22 @@
                :accessor trajectory)
    (started-at :type single-float
                :initarg :started-at
-               :accessor started-at)))
+               :accessor started-at)
+   (fire-at :type single-float
+            :initarg :fire-at
+            :accessor fire-at)
+   (has-fired? :type boolean
+               :initform nil
+               :accessor has-fired?)))
 
-(defun make-movement-descriptor (trajectory started-at)
-  "Create a movement-descriptor instance holding TRAJECTORY and STARTED-AT.
-STARTED-AT is expected to be a single-float timestamp (seconds)."
+(defun make-movement-descriptor (trajectory started-at fire-at)
+  "Create a movement-descriptor instance holding TRAJECTORY, STARTED-AT, and FIRE-AT.
+STARTED-AT is expected to be a single-float timestamp (seconds).
+FIRE-AT is the relative trajectory time at which the enemy should fire."
   (make-instance 'movement-descriptor
                  :trajectory trajectory
-                 :started-at started-at))
+                 :started-at started-at
+                 :fire-at fire-at))
 
 (defmethod print-object ((obj movement-descriptor) out)
   (with-slots (trajectory started-at) obj
@@ -62,10 +70,13 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
                 :initarg :game-config
                 :reader game-config)
    (paused :initform nil
-           :accessor paused)
+            :accessor paused)
+   (game-over :initform nil
+              :type boolean
+              :accessor game-over)
    (quit :initform nil
-         :type boolean
-         :accessor game-state-quit)))
+          :type boolean
+          :accessor game-state-quit)))
 
 (defmethod print-object ((obj game-state) out)
   (with-slots (player-state enemies projectiles) obj
@@ -114,6 +125,14 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
           :else :do
             (vector-push-extend projectile new-projectiles-vector))
     (setf (projectiles game-state) new-projectiles-vector)))
+
+(defmethod process-player-hit! ((game-state game-state))
+  (let* ((player-rect (position-rect (player-state game-state))))
+    (when (find-if (lambda (projectile)
+                     (and (not (is-player-owned projectile))
+                          (has-common-area? player-rect (position-rect projectile))))
+                   (projectiles game-state))
+      (setf (game-over game-state) t))))
 
 (defmethod move-projectiles! ((game-state game-state)
                               (seconds-since-last-update single-float))
@@ -178,7 +197,7 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
                     (setf (movement-descriptor enemy) nil)
                     (setf (rotation-angle enemy) 0f0))
                  (incf (attacks-completed-count (enemies game-state)) ))))
-  ;; Move existing enemies
+  ;; Move existing enemies and fire if time has come
   (loop :for enemy :across (-> game-state enemies enemy-ship-states)
         :as md := (movement-descriptor enemy)
         :when md
@@ -192,7 +211,21 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
                                                                  (rectangle-height old-position))))
               (setf (position-rect enemy) new-position)
               (setf (rotation-angle enemy)
-                    (atan (dx vel) (dy vel)))))
+                    (atan (dx vel) (dy vel)))
+              ;; Fire once when relative-time passes fire-at
+              (when (and (not (has-fired? md))
+                         (>= relative-time (fire-at md)))
+                (let* ((enemy-center (center (position-rect enemy)))
+                       (player-center (get-center (player-state game-state)))
+                       (dir-dx (- (point-x player-center) (point-x enemy-center)))
+                       (dir-dy (- (point-y player-center) (point-y enemy-center)))
+                       (length (sqrt (+ (* dir-dx dir-dx) (* dir-dy dir-dy))))
+                       (speed (enemy-projectile-speed (game-config game-state)))
+                       (speed-vec (make-vector2d (* speed (/ dir-dx length))
+                                                 (* speed (/ dir-dy length))))
+                       (projectile (new-enemy-projectile (position-rect enemy) speed-vec)))
+                  (vector-push-extend projectile (projectiles game-state))
+                  (setf (has-fired? md) t)))))
   ;; If time for next attack came - start it
   (if (should-start-enemy-movement? (enemies game-state) seconds-now)
       (start-enemy-movement! (game-config game-state)
@@ -201,9 +234,11 @@ STARTED-AT is expected to be a single-float timestamp (seconds)."
 
 (defmethod update! ((game-state game-state)
                     (seconds-now single-float))
-  (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
-    (move-projectiles! game-state seconds-since-last-update)
-    (player-fire! game-state seconds-now)
-    (move-player! game-state seconds-since-last-update)
-    (move-enemies! game-state seconds-now)
-    (setf (last-update-seconds game-state) seconds-now)))
+  (unless (game-over game-state)
+    (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
+      (move-projectiles! game-state seconds-since-last-update)
+      (process-player-hit! game-state)
+      (player-fire! game-state seconds-now)
+      (move-player! game-state seconds-since-last-update)
+      (move-enemies! game-state seconds-now)
+      (setf (last-update-seconds game-state) seconds-now))))
