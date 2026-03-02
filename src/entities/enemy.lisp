@@ -16,9 +16,9 @@
               :type enemy-type
               :accessor ship-type)
    (movement-descriptor :initarg :movement-descriptor
-                         :initform nil
-                         :type enemy-movement-state
-                         :accessor movement-descriptor)
+                        :initform nil
+                        :type enemy-movement-state
+                        :accessor movement-descriptor)
    (rotation-angle :initform 0f0
                    :type single-float
                    :accessor rotation-angle)))
@@ -79,22 +79,18 @@
          (enemy-ships-vector (coerce enemy-ships 'vector)))
     (make-enemies-state game-config enemy-ships-vector)))
 
-(defmethod pick-next-attacker ((enemies-state enemies-state)
-                               (game-config game-config)
-                               random-fn)
-  "Picks next enemy ship to execute attack on the player. Returns enemy index.
-   random-fn - 1 arg function, takes max number to return"
+(defmethod eligible-attacker-indices ((enemies-state enemies-state)
+                                      (game-config game-config))
+  "Returns a list of enemy indices eligible to attack, or nil if none are eligible."
   (let+ (((&accessors attacks-completed-count enemy-ship-states) enemies-state)
          (progression-index (or (position-if (lambda (x) (> x attacks-completed-count))
                                              (attack-progression game-config))
                                 (- (length +enemy-types+) 1)))
-         (allowed-types (subseq +enemy-types+ 0 (+ progression-index 1)))
-         (allowed-indices (all-positions-if (lambda (enemy) (and (member (ship-type enemy)
-                                                                         allowed-types)
-                                                                 (null (movement-descriptor enemy))))
-                                            enemy-ship-states))
-         (picked-number (funcall random-fn (length allowed-indices))))
-    (elt allowed-indices picked-number)))
+         (allowed-types (subseq +enemy-types+ 0 (+ progression-index 1))))
+    (all-positions-if (lambda (enemy)
+                        (and (member (ship-type enemy) allowed-types)
+                             (null (movement-descriptor enemy))))
+                      enemy-ship-states)))
 
 (defmethod attack-trajectory-for-enemy-index ((game-config game-config)
                                               (enemies-state enemies-state)
@@ -142,17 +138,15 @@
 (defmethod start-enemy-movement! ((game-config game-config)
                                   (enemies-state enemies-state)
                                   (seconds-now single-float))
-  (format t "Starting enemy movement")
-  ;decide what enemy is going to move
-  (let+ ((random-fn (lambda (x) (random x)))
-         (enemy-index (pick-next-attacker enemies-state game-config random-fn))
-         ((&accessors enemy-ship-states) enemies-state)
-         (enemy (elt enemy-ship-states enemy-index))
-         (trajectory (attack-trajectory-for-enemy-index game-config enemies-state enemy-index))
-         ;; Pick a random fire time within splines 1 and 2: t in [0.5, 3.5)
-         (fire-at (+ 0.5f0 (/ (coerce (funcall random-fn 30) 'single-float) 10f0)))
-         (attack-movement-descriptor (make-movement-descriptor trajectory
-                                                               seconds-now
-                                                               fire-at)))
-    (setf (movement-descriptor enemy) attack-movement-descriptor)
-    (setf (last-attack-started-at enemies-state) seconds-now)))
+  (a:if-let ((eligible (eligible-attacker-indices enemies-state game-config)))
+    (let+ ((enemy-index (elt eligible (random (length eligible))))
+           ((&accessors enemy-ship-states) enemies-state)
+           (enemy (elt enemy-ship-states enemy-index))
+           (trajectory (attack-trajectory-for-enemy-index game-config enemies-state enemy-index))
+           ;; Pick a random fire time within splines 1 and 2: t in [0.5, 3.5)
+           (fire-at (+ 0.5f0 (/ (coerce (random 30) 'single-float) 10f0)))
+           (attack-movement-descriptor (make-movement-descriptor trajectory
+                                                                 seconds-now
+                                                                 fire-at)))
+      (setf (movement-descriptor enemy) attack-movement-descriptor)
+      (setf (last-attack-started-at enemies-state) seconds-now))))

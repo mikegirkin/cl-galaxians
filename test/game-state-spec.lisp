@@ -100,12 +100,18 @@
 (in-suite enemy-state-spec)
 (setf g::+log-level+ :info)
 
-(test picks-next-eligible-enemy
+(test eligible-attacker-indices-returns-all-non-moving-enemies
   (let+ ((game-config (g::make-game-config))
          (enemies-state (g::make-initial-enemies-state game-config))
-         (random-fn (lambda (_) 0))
-         (picked-attacker-index (g::pick-next-attacker enemies-state game-config random-fn)))
-    (is (= picked-attacker-index 0))))
+         (eligible (g::eligible-attacker-indices enemies-state game-config)))
+    ;; At attacks-completed-count=0 only drones are eligible (30 of them)
+    (is (= 30 (length eligible)))
+    ;; All returned indices should be drones with no movement-descriptor
+    (is (every (lambda (idx)
+                 (let ((enemy (elt (g::enemy-ship-states enemies-state) idx)))
+                   (and (eq (g::ship-type enemy) :drone)
+                        (null (g::movement-descriptor enemy)))))
+               eligible))))
 
 (test should-start-enemy-movement-is-correct
   (let+ ((game-state (g::make-initial-game-state test-game-config)))
@@ -197,6 +203,27 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
          (_ (vector-push-extend projectile (g::projectiles game-state)))
          (_ (g::update! game-state 0f0)))
     (is-true (g::game-over game-state))))
+
+(test no-error-when-last-enemy-is-already-moving
+  ;; With only one enemy present and already attacking, should-start-enemy-movement?
+  ;; returns T (wait=0) but there are no eligible targets. This must not error.
+  (let* ((game-config (g::make-game-config :initial-wait-between-attacks 0))
+         (game-state (g::make-initial-game-state game-config))
+         ;; Replace all enemies with a single one
+         (single-enemy (g::make-enemy-ship-state
+                        (make-rectangle-from-center-size (make-point2d 50f0 150f0)
+                                                         g::+enemy-ship-size+
+                                                         g::+enemy-ship-size+)
+                        :drone))
+         (enemies-vector (make-array 1 :initial-contents (list single-enemy)))
+         (enemies-state (g::make-enemies-state game-config enemies-vector))
+         (trajectory (g::attack-trajectory-for-enemy-index game-config enemies-state 0))
+         (md (g::make-movement-descriptor trajectory 0f0 0.5f0)))
+    (setf (g::enemies game-state) enemies-state)
+    (setf (g::movement-descriptor single-enemy) md)
+    ;; should-start-enemy-movement? is true immediately (wait=0),
+    ;; but the only enemy is already moving -- this must not signal an error
+    (finishes (g::update! game-state 1f0))))
 
 (test left-side-enemy-attacks-toward-left-boundary
   ;; Enemy at x=50, gamefield center x=100 => should dive toward left boundary (x=0)
