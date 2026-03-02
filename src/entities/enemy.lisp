@@ -143,8 +143,8 @@
            ((&accessors enemy-ship-states) enemies-state)
            (enemy (elt enemy-ship-states enemy-index))
            (trajectory (attack-trajectory-for-enemy-index game-config enemies-state enemy-index))
-           ;; Pick a random fire time within splines 1 and 2: t in [0.5, 3.5)
-           (fire-at (+ 0.5f0 (/ (coerce (random 30) 'single-float) 10f0)))
+           ;; Pick a random fire time within spline 1 only: t in [0.5, 2.0)
+           (fire-at (+ 0.5f0 (/ (coerce (random 15) 'single-float) 10f0)))
            (attack-movement-descriptor (make-movement-descriptor trajectory
                                                                  seconds-now
                                                                  fire-at)))
