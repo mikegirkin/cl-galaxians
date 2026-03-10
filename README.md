@@ -32,13 +32,13 @@ make test
 - [x] enemy rotation on movement
 - [x] enemies should move to the closest boundary when flying from the initial point
 - [x] enemy firing
+- [ ] lives counting
+- [ ] lives count display
+- [ ] enemy blowup rendering
 - [ ] remove hardcoded timings for firing
-- [ ] change projectiles to squares
 - [ ] make enemy projectiles of square shape
 - [ ] enemies should move at relatively similar speeds when initiate attack and when returning from it
-- [ ] enemy blowup rendering
 - [ ] define different trajectories for different enemy types
-- [ ] lives count and display
 - [ ] score count and display
 
 ## Assets

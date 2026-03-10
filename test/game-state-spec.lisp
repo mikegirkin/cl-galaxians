@@ -194,13 +194,48 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
 (test enemy-projectile-kills-player
   ;; Place an enemy projectile directly on the player and verify game-over is set.
   ;; Use seconds-now=0 so move-projectiles! applies zero displacement before the hit check.
-  (let* ((game-state (g::make-initial-game-state test-game-config))
+  ;; Use initial-lives=1 so the first hit triggers game-over immediately.
+  (let* ((game-config (g::make-game-config :initial-lives 1))
+         (game-state (g::make-initial-game-state game-config))
          (player-center (g::get-center (g::player-state game-state)))
          (projectile (g::mk-projectile-state
                       (make-rectangle-from-center-size player-center 1 3)
                       (make-vector2d 0f0 -10f0)
                       nil))
          (_ (vector-push-extend projectile (g::projectiles game-state)))
+         (_ (g::update! game-state 0f0)))
+    (is-true (g::game-over game-state))))
+
+(defun make-game-state-with-enemy-projectile-on-player (game-config)
+  "Create a game-state with an enemy projectile overlapping the player."
+  (let* ((game-state (g::make-initial-game-state game-config))
+         (player-center (g::get-center (g::player-state game-state)))
+         (projectile (g::mk-projectile-state
+                      (make-rectangle-from-center-size player-center 1 3)
+                      (make-vector2d 0f0 -10f0)
+                      nil)))
+    (vector-push-extend projectile (g::projectiles game-state))
+    game-state))
+
+(test player-loses-a-life-on-hit
+  (let* ((game-config (g::make-game-config :initial-lives 3))
+         (game-state (make-game-state-with-enemy-projectile-on-player game-config))
+         (_ (g::update! game-state 0f0)))
+    (is (= 2 (g::lives-remaining game-state)))
+    (is-false (g::game-over game-state))))
+
+(test player-respawns-at-start-on-hit
+  (let* ((game-config (g::make-game-config :initial-lives 3))
+         (game-state (make-game-state-with-enemy-projectile-on-player game-config))
+         (_ (g::update! game-state 0f0))
+         (player-center (g::get-center (g::player-state game-state))))
+    (is (g::float-eql (point-x player-center) 142f0 :epsilon 1f-3))
+    (is (g::float-eql (point-y player-center) 8f0 :epsilon 1f-3))
+    (is (= 0 (length (g::projectiles game-state))))))
+
+(test game-over-when-lives-exhausted
+  (let* ((game-config (g::make-game-config :initial-lives 1))
+         (game-state (make-game-state-with-enemy-projectile-on-player game-config))
          (_ (g::update! game-state 0f0)))
     (is-true (g::game-over game-state))))
 

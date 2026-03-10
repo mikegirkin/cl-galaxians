@@ -69,6 +69,9 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
    (game-config :type game-config
                 :initarg :game-config
                 :reader game-config)
+   (lives-remaining :type integer
+                    :initarg :lives-remaining
+                    :accessor lives-remaining)
    (paused :initform nil
             :accessor paused)
    (game-over :initform nil
@@ -87,6 +90,7 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
   (make-instance 'game-state
                  :game-config game-config
                  :player-state (make-player-state 142 8)
+                 :lives-remaining (initial-lives game-config)
                  :enemies (make-initial-enemies-state game-config)))
 
 (defmethod initialize-enemies! ((game-state game-state))
@@ -132,7 +136,13 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
                      (and (not (is-player-owned projectile))
                           (has-common-area? player-rect (position-rect projectile))))
                    (projectiles game-state))
-      (setf (game-over game-state) t))))
+      (decf (lives-remaining game-state))
+      (if (<= (lives-remaining game-state) 0)
+          (setf (game-over game-state) t)
+          (progn
+            (setf (player-state game-state) (make-player-state 142 8))
+            (setf (projectiles game-state)
+                  (make-array 5 :fill-pointer 0 :adjustable t)))))))
 
 (defmethod move-projectiles! ((game-state game-state)
                               (seconds-since-last-update single-float))

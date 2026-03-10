@@ -29,21 +29,26 @@
                         :reader attack-progression)
    (enemy-projectile-speed :type single-float
                             :initarg :enemy-projectile-speed
-                            :reader enemy-projectile-speed)))
+                            :reader enemy-projectile-speed)
+   (initial-lives :type integer
+                  :initarg :initial-lives
+                  :reader initial-lives)))
 
 (defun make-game-config (&key (player-speed 3)
                            (player-projectile-speed 50)
                            (gamefield-rect (make-rectangle-by-size 0 0 200 192))
                            (initial-wait-between-attacks 3)
                            (attack-progression (list 2 4))
-                           (enemy-projectile-speed 40f0))
+                           (enemy-projectile-speed 40f0)
+                           (initial-lives 3))
   (make-instance 'game-config
                  :player-speed player-speed
                  :gamefield-rect gamefield-rect
                  :player-projectile-speed player-projectile-speed
                  :initial-wait-between-attacks initial-wait-between-attacks
                  :attack-progression attack-progression
-                 :enemy-projectile-speed enemy-projectile-speed))
+                 :enemy-projectile-speed enemy-projectile-speed
+                 :initial-lives initial-lives))
 
 (defun log-debug (line)
   (if (eq +log-level+ :debug)
