@@ -95,6 +95,28 @@
     (is (= 0 (length (g::projectiles game-state))))
     (is (= 43 (length (-> game-state g::enemies g::enemy-ship-states)) 43))))
 
+(test explosion-created-when-enemy-hit
+  ;; Killing an enemy should spawn an explosion in (explosions game-state)
+  (let* ((game-state (g::make-initial-game-state test-game-config))
+         (projectile (g::new-player-projectile (g::player-state game-state)
+                                               (g::make-vector2d 0 10)))
+         (_ (setf (g::position-rect projectile)
+                  (make-rectangle-by-size 20 130 1 3)))
+         (_ (vector-push-extend projectile (g::projectiles game-state)))
+         (_ (g::update! game-state 1f0)))
+    (is (= 1 (length (g::explosions game-state))))))
+
+(test explosion-removed-after-duration
+  ;; An explosion whose started-at + duration has passed should be removed
+  (let* ((game-config (g::make-game-config :explosion-duration 0.5f0))
+         (game-state (g::make-initial-game-state game-config))
+         (explosion (g::make-explosion-state
+                     (make-rectangle-by-size 50 50 12 12)
+                     0f0))
+         (_ (vector-push-extend explosion (g::explosions game-state)))
+         (_ (g::update! game-state 0.6f0)))
+    (is (= 0 (length (g::explosions game-state))))))
+
 
 (def-suite enemy-state-spec)
 (in-suite enemy-state-spec)

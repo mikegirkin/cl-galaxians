@@ -32,7 +32,13 @@
                             :reader enemy-projectile-speed)
    (initial-lives :type integer
                   :initarg :initial-lives
-                  :reader initial-lives)))
+                  :reader initial-lives)
+   (explosion-frame-count :type integer
+                          :initarg :explosion-frame-count
+                          :reader explosion-frame-count)
+   (explosion-duration :type single-float
+                       :initarg :explosion-duration
+                       :reader explosion-duration)))
 
 (defun make-game-config (&key (player-speed 3)
                            (player-projectile-speed 50)
@@ -40,7 +46,9 @@
                            (initial-wait-between-attacks 3)
                            (attack-progression (list 2 4))
                            (enemy-projectile-speed 40f0)
-                           (initial-lives 3))
+                           (initial-lives 3)
+                           (explosion-frame-count 8)
+                           (explosion-duration 0.5f0))
   (make-instance 'game-config
                  :player-speed player-speed
                  :gamefield-rect gamefield-rect
@@ -48,7 +56,9 @@
                  :initial-wait-between-attacks initial-wait-between-attacks
                  :attack-progression attack-progression
                  :enemy-projectile-speed enemy-projectile-speed
-                 :initial-lives initial-lives))
+                 :initial-lives initial-lives
+                 :explosion-frame-count explosion-frame-count
+                 :explosion-duration explosion-duration))
 
 (defun log-debug (line)
   (if (eq +log-level+ :debug)

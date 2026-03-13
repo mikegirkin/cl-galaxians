@@ -5,6 +5,16 @@
 (defparameter +enemy-ship-sentry+ "images/Ship_2.png")
 (defparameter +enemy-ship-guardian+ "images/Ship_3.png")
 
+(defparameter +explosion-sprite-paths+
+  (vector "images/explosion_1.png"
+          "images/explosion_2.png"
+          "images/explosion_3.png"
+          "images/explosion_4.png"
+          "images/explosion_5.png"
+          "images/explosion_6.png"
+          "images/explosion_7.png"
+          "images/explosion_8.png"))
+
 (defun asset (path)
   (namestring (asdf:system-relative-pathname "galaxians" (concatenate 'string "resources/" path))))
 
@@ -18,7 +28,9 @@
   (setf (sprites-main-ship (sprites game-state)) (load-bitmap +main-ship-sprite-path+))
   (setf (sprites-drone-ship (sprites game-state)) (load-bitmap +enemy-ship-drone+))
   (setf (sprites-sentry-ship (sprites game-state)) (load-bitmap +enemy-ship-sentry+))
-  (setf (sprites-guardian-ship (sprites game-state)) (load-bitmap +enemy-ship-guardian+)))
+  (setf (sprites-guardian-ship (sprites game-state)) (load-bitmap +enemy-ship-guardian+))
+  (setf (sprites-explosion-frames (sprites game-state))
+        (map 'vector #'load-bitmap +explosion-sprite-paths+)))
 
 (defun world-to-gfx-x (x-coord)
   (* x-coord +scale+))
@@ -83,11 +95,28 @@
                                       (y2 projectile-gfx-rect)
                                       (al:map-rgb 255 255 255))))
 
-(defun render (game-state)
+(defun render-explosions (game-state seconds-now)
+  (let* ((config (game-config game-state))
+         (frames (sprites-explosion-frames (sprites game-state))))
+    (loop :for explosion :across (explosions game-state)
+          :for frame = (explosion-current-frame explosion seconds-now config)
+          :for sprite = (aref frames frame)
+          :for rect-gfx = (world-to-gfx (position-rect explosion))
+          :do (al:draw-scaled-bitmap sprite
+                                     0 0
+                                     32 32
+                                     (left rect-gfx)
+                                     (bottom rect-gfx)
+                                     (rectangle-width rect-gfx)
+                                     (rectangle-height rect-gfx)
+                                     nil))))
+
+(defun render (game-state &optional (seconds-now 0f0))
   (al:clear-to-color (al:map-rgb 0 0 0))
   (render-player game-state)
   (render-projectiles game-state)
   (render-enemies game-state)
+  (render-explosions game-state seconds-now)
   (al:draw-line (world-to-gfx-x 16)
                 (world-to-gfx-y 0)
                 (world-to-gfx-x 16)

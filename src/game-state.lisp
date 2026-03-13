@@ -9,7 +9,8 @@
   main-ship
   drone-ship
   sentry-ship
-  guardian-ship)
+  guardian-ship
+  explosion-frames) ; vector of bitmaps, one per explosion frame
 
 (defclass animation ()
   ((sprites :initform nil :accessor sprites)
@@ -77,6 +78,8 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
    (game-over :initform nil
               :type boolean
               :accessor game-over)
+   (explosions :initform (make-array 4 :fill-pointer 0 :adjustable t)
+               :accessor explosions)
    (quit :initform nil
           :type boolean
           :accessor game-state-quit)))
@@ -114,7 +117,8 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
                                              (position-rect enemy)))
            (-> game-state enemies enemy-ship-states)))
 
-(defmethod process-enemy-hits! ((game-state game-state))
+(defmethod process-enemy-hits! ((game-state game-state)
+                                (seconds-now single-float))
   (log-debug "process-enemy-hits!~%")
   (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
                                              :fill-pointer 0
@@ -122,9 +126,12 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
     (loop :for projectile :across (projectiles game-state)
           :if (is-player-owned projectile)
             :do (a:if-let ((enemy (get-enemy-hit game-state projectile)))
-                  (setf (enemy-ship-states (enemies game-state))
-                        (remove enemy (enemy-ship-states (enemies game-state))))
-                                        ;TODO: add enemy killed animation
+                  (progn
+                    (setf (enemy-ship-states (enemies game-state))
+                          (remove enemy (enemy-ship-states (enemies game-state))))
+                    (vector-push-extend
+                     (make-explosion-state (position-rect enemy) seconds-now)
+                     (explosions game-state)))
                   (vector-push-extend projectile new-projectiles-vector))
           :else :do
             (vector-push-extend projectile new-projectiles-vector))
@@ -145,6 +152,7 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
                   (make-array 5 :fill-pointer 0 :adjustable t)))))))
 
 (defmethod move-projectiles! ((game-state game-state)
+                              (seconds-now single-float)
                               (seconds-since-last-update single-float))
   (log-debug "move-projectiles!~%")
   (let* ((new-projectiles-vector (make-array (length (projectiles game-state))
@@ -152,7 +160,7 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
                                              :adjustable t)))
     (loop :for projectile :across (projectiles game-state)
           :do (move! projectile seconds-since-last-update))
-    (process-enemy-hits! game-state)
+    (process-enemy-hits! game-state seconds-now)
     (loop :for projectile :across (projectiles game-state)
           :do (cond
                 ((within-screen? game-state projectile)
@@ -242,13 +250,25 @@ FIRE-AT is the relative trajectory time at which the enemy should fire."
                              (enemies game-state)
                              seconds-now)))
 
+(defmethod update-explosions! ((game-state game-state)
+                               (seconds-now single-float))
+  (let* ((config (game-config game-state))
+         (new-explosions (make-array (length (explosions game-state))
+                                     :fill-pointer 0
+                                     :adjustable t)))
+    (loop :for explosion :across (explosions game-state)
+          :unless (explosion-finished? explosion seconds-now config)
+            :do (vector-push-extend explosion new-explosions))
+    (setf (explosions game-state) new-explosions)))
+
 (defmethod update! ((game-state game-state)
                     (seconds-now single-float))
   (unless (game-over game-state)
     (let* ((seconds-since-last-update (- seconds-now (last-update-seconds game-state))))
-      (move-projectiles! game-state seconds-since-last-update)
+      (move-projectiles! game-state seconds-now seconds-since-last-update)
       (process-player-hit! game-state)
       (player-fire! game-state seconds-now)
       (move-player! game-state seconds-since-last-update)
       (move-enemies! game-state seconds-now)
+      (update-explosions! game-state seconds-now)
       (setf (last-update-seconds game-state) seconds-now))))

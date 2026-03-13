@@ -83,9 +83,9 @@
                      :while (not (game-state-quit game-state))
                      :do (let ((timer (al:get-time)))
                            (process-event-queue event-queue game-state)
-                           (unless (paused game-state)
-                             (update! game-state (coerce timer 'single-float)))
-                           (render game-state)))))
+                            (unless (paused game-state)
+                              (update! game-state (coerce timer 'single-float)))
+                            (render game-state (coerce timer 'single-float))))))
         (shutdown display event-queue))))
   0)
 

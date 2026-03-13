@@ -13,6 +13,7 @@
                  (:file "entities/player")
                  (:file "entities/enemy")
                  (:file "entities/projectile")
+                 (:file "entities/explosion")
                  (:file "game-state")
                  (:file "render")
                  (:file "main")))
